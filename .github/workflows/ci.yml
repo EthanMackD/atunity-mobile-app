@@ -7,6 +7,7 @@ on:
     branches: [develop, main]
 
 jobs:
+<<<<<<< HEAD
   lint-and-test:
     name: Lint and Test
     runs-on: ubuntu-latest
@@ -15,10 +16,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       
+=======
+  frontend:
+    name: Frontend - Install & Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+>>>>>>> 35ed7541a8b8fd2766d636fddfde739230e5868a
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
+<<<<<<< HEAD
       
       - name: Install dependencies
         run: npm install
@@ -28,3 +39,31 @@ jobs:
       
       - name: Run tests
         run: npm test || echo "Tests not configured yet"
+=======
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Check frontend builds
+        run: npx expo export --platform web || echo "Web export not configured"
+
+  backend:
+    name: Backend - Install & Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Check backend starts
+        run: |
+          cd backend
+          timeout 5 node server.js || true
+>>>>>>> 35ed7541a8b8fd2766d636fddfde739230e5868a

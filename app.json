@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "ATUnity",
+    "slug": "atunity",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/icon.png",
+    "scheme": "atunity",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#065A82"
+      }
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./src/assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#065A82"
+        }
+      ]
+    ]
+  }
+}

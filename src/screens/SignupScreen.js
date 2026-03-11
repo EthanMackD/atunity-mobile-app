@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '../services/api';
 
 export default function SignupScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -7,24 +9,49 @@ export default function SignupScreen({ navigation }) {
   const [name, setName] = useState('');
   const [course, setCourse] = useState('');
   const [year, setYear] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = () => {
-    // TODO: Teammate 1 will add the real signup code here later
-    if (email && password && name) {
-      Alert.alert('Success', 'Signup button works! (Backend not connected yet)');
-      navigation.navigate('Login');
-    } else {
+  const handleSignup = async () => {
+    if (!email || !password || !name) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    if (!email.endsWith('@atu.ie') && !email.endsWith('@gmit.ie')) {
+      Alert.alert('Error', 'Please use your ATU or GMIT email address');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await api.register(email, password, name, course, year ? parseInt(year) : null);
+
+      if (data.success) {
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        Alert.alert('Welcome!', `Account created for ${data.user.name}`, [
+          { text: 'OK', onPress: () => navigation.replace('EventsList') }
+        ]);
+      } else {
+        Alert.alert('Error', data.error || 'Registration failed');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not connect to server. Is the backend running?');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {/* Title */}
       <Text style={styles.title}>Create Account</Text>
       <Text style={styles.subtitle}>Join ATUnity today</Text>
 
-      {/* Name Input */}
       <TextInput
         style={styles.input}
         placeholder="Full Name *"
@@ -32,7 +59,6 @@ export default function SignupScreen({ navigation }) {
         onChangeText={setName}
       />
 
-      {/* Email Input */}
       <TextInput
         style={styles.input}
         placeholder="Email (@atu.ie) *"
@@ -42,7 +68,6 @@ export default function SignupScreen({ navigation }) {
         autoCapitalize="none"
       />
 
-      {/* Password Input */}
       <TextInput
         style={styles.input}
         placeholder="Password *"
@@ -51,7 +76,6 @@ export default function SignupScreen({ navigation }) {
         secureTextEntry
       />
 
-      {/* Course Input */}
       <TextInput
         style={styles.input}
         placeholder="Course (e.g., Software Development)"
@@ -59,7 +83,6 @@ export default function SignupScreen({ navigation }) {
         onChangeText={setCourse}
       />
 
-      {/* Year Input */}
       <TextInput
         style={styles.input}
         placeholder="Year (e.g., 3)"
@@ -68,12 +91,14 @@ export default function SignupScreen({ navigation }) {
         keyboardType="number-pad"
       />
 
-      {/* Sign Up Button */}
-      <TouchableOpacity style={styles.button} onPress={handleSignup}>
-        <Text style={styles.buttonText}>Sign Up</Text>
+      <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>Sign Up</Text>
+        )}
       </TouchableOpacity>
 
-      {/* Link to Login */}
       <TouchableOpacity onPress={() => navigation.navigate('Login')}>
         <Text style={styles.link}>Already have an account? Login</Text>
       </TouchableOpacity>
