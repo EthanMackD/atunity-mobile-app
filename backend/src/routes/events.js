@@ -7,5 +7,6 @@ router.get('/', eventsController.getAllEvents);
 router.get('/:id', eventsController.getEventById);
 router.post('/:id/attend', authMiddleware, eventsController.markAttendance);
 router.get('/:id/attendees', eventsController.getAttendees);
+router.post('/', eventsController.createEvent);
 
 module.exports = router;
