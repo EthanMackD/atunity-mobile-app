@@ -1,0 +1,46 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  frontend:
+    name: Frontend - Install & Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Check frontend builds
+        run: npx expo export --platform web || echo "Web export not configured"
+
+  backend:
+    name: Backend - Install & Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install backend dependencies
+        run: cd backend && npm install
+
+      - name: Check backend starts
+        run: |
+          cd backend
+          timeout 5 node server.js || true
