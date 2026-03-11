@@ -1,25 +1,50 @@
-import logo from './logo.svg';
-import './App.css';
+import { useState } from "react";
+import EventsPage from "./pages/EventsPage";
+import "./App.css";
 
-function App() {
+function HomePage({ onNavigate }) {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="home">
+      <div className="hero">
+        <h1>ATUnity</h1>
+        <p>Your ATU Galway campus companion</p>
+        <div className="nav-cards">
+          <div className="card" onClick={() => onNavigate("events")}>
+            <span className="icon">📅</span>
+            <h2>Events</h2>
+            <p>See what's happening on campus</p>
+          </div>
+          <div className="card coming-soon">
+            <span className="icon">🗺️</span>
+            <h2>Campus Map</h2>
+            <p>Coming soon</p>
+          </div>
+          <div className="card coming-soon">
+            <span className="icon">👤</span>
+            <h2>Profile</h2>
+            <p>Coming soon</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
-export default App;
+export default function App() {
+  const [page, setPage] = useState("home");
+
+  return (
+    <div className="app">
+      <nav className="navbar">
+        <span className="logo" onClick={() => setPage("home")}>ATUnity</span>
+        <div className="nav-links">
+          <button onClick={() => setPage("home")} className={page === "home" ? "active" : ""}>Home</button>
+          <button onClick={() => setPage("events")} className={page === "events" ? "active" : ""}>Events</button>
+        </div>
+      </nav>
+
+      {page === "home" && <HomePage onNavigate={setPage} />}
+      {page === "events" && <EventsPage />}
+    </div>
+  );
+}
