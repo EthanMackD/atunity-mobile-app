@@ -1,87 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, StyleSheet, Alert } from 'react-native';
+import {
+  View, Text, FlatList, TouchableOpacity,
+  StyleSheet, ActivityIndicator, RefreshControl
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_URL = 'http://localhost:3000/api';
 
 export default function EventsListScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: '', description: '', date: '', location: '', organizer: '' });
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    fetch('http://10.27.16.180:5000/api/events')
-      .then(res => res.json())
-      .then(data => { setEvents(data.events || []); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, []);
-
-  const handleSubmit = async () => {
-    if (!form.title || !form.date) return Alert.alert('Title and date are required!');
-    const res = await fetch('http://YOUR_IP:5000/api/events', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form)
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Profile')}
+          style={{ marginRight: 16 }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
+        </TouchableOpacity>
+      ),
     });
-    const data = await res.json();
-    if (data.success) {
-      setEvents([...events, data.event]);
-      setForm({ title: '', description: '', date: '', location: '', organizer: '' });
-      setShowForm(false);
+  }, [navigation]);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch(`${API_URL}/events`);
+      const data = await response.json();
+      if (data.success) {
+        setEvents(data.events);
+      }
+    } catch (error) {
+      console.error('Failed to fetch events:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   };
 
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchEvents();
+  };
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      academic: '#3B82F6',
+      social: '#8B5CF6',
+      sports: '#10B981',
+      careers: '#F59E0B',
+    };
+    return colors[category] || '#64748B';
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IE', {
+      weekday: 'short', month: 'short', day: 'numeric'
+    });
+  };
+
+  const renderEvent = ({ item }) => (
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.categoryBadge,
+          { backgroundColor: getCategoryColor(item.category) }]}>
+          <Text style={styles.categoryText}>
+            {item.category ? item.category.toUpperCase() : 'EVENT'}
+          </Text>
+        </View>
+        <Text style={styles.attendeeCount}>
+          {item.attendee_count || 0} going
+        </Text>
+      </View>
+      <Text style={styles.eventTitle}>{item.title}</Text>
+      <Text style={styles.eventInfo}>
+        {formatDate(item.date)} at {item.time}
+      </Text>
+      <Text style={styles.eventLocation}>{item.location}</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#065A82" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Campus Events</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(!showForm)}>
-          <Text style={styles.addBtnText}>{showForm ? 'Cancel' : '+ Add'}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {showForm && (
-        <View style={styles.form}>
-          <TextInput style={styles.input} placeholder="Event title *" value={form.title} onChangeText={t => setForm({ ...form, title: t })} />
-          <TextInput style={styles.input} placeholder="Description" value={form.description} onChangeText={t => setForm({ ...form, description: t })} />
-          <TextInput style={styles.input} placeholder="Date (e.g. 2026-03-15)" value={form.date} onChangeText={t => setForm({ ...form, date: t })} />
-          <TextInput style={styles.input} placeholder="Location" value={form.location} onChangeText={t => setForm({ ...form, location: t })} />
-          <TextInput style={styles.input} placeholder="Organizer" value={form.organizer} onChangeText={t => setForm({ ...form, organizer: t })} />
-          <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
-            <Text style={styles.submitText}>Post Event</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {loading && <Text style={styles.status}>Loading events...</Text>}
-      {!loading && events.length === 0 && <Text style={styles.status}>No events yet — add one!</Text>}
-
       <FlatList
         data={events}
-        keyExtractor={item => item.id.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={styles.cardDesc}>{item.description}</Text>
-            <Text style={styles.cardMeta}>📅 {item.date}  📍 {item.location}</Text>
-          </View>
-        )}
+        renderItem={renderEvent}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No events found</Text>
+        }
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F8FAFC' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#065A82' },
-  addBtn: { backgroundColor: '#065A82', padding: 10, borderRadius: 8 },
-  addBtnText: { color: 'white', fontWeight: '600' },
-  form: { backgroundColor: 'white', padding: 16, borderRadius: 12, marginBottom: 16 },
-  input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 10 },
-  submitBtn: { backgroundColor: '#1C7293', padding: 12, borderRadius: 8, alignItems: 'center' },
-  submitText: { color: 'white', fontWeight: '600' },
-  status: { textAlign: 'center', color: '#888', marginTop: 20 },
-  card: { backgroundColor: 'white', padding: 16, borderRadius: 12, marginBottom: 12 },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#065A82', marginBottom: 4 },
-  cardDesc: { color: '#555', marginBottom: 8 },
-  cardMeta: { color: '#888', fontSize: 13 },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: 16 },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  categoryBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  categoryText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  attendeeCount: { fontSize: 13, color: '#64748B' },
+  eventTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  eventInfo: { fontSize: 14, color: '#065A82', marginBottom: 2 },
+  eventLocation: { fontSize: 14, color: '#64748B' },
+  emptyText: {
+    textAlign: 'center',
+    fontSize: 16,
+    marginTop: 40,
+  },
 });
