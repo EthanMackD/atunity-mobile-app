@@ -1,27 +1,42 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { api } from '../services/api';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // TODO: Teammate 1 will add the real login code here later
-    if (email && password) {
-      Alert.alert('Success', 'Login button works! (Backend not connected yet)');
-      // Later this will navigate to the Events List
-    } else {
+  const handleLogin = async () => {
+    if (!email || !password) {
       Alert.alert('Error', 'Please fill in both fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await api.login(email, password);
+
+      if (data.success) {
+        await AsyncStorage.setItem('token', data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        navigation.replace('EventsList');
+      } else {
+        Alert.alert('Error', data.error || 'Login failed');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Could not connect to server. Is the backend running?');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      {/* Title */}
       <Text style={styles.title}>ATUnity</Text>
       <Text style={styles.subtitle}>Login to your account</Text>
 
-      {/* Email Input Box */}
       <TextInput
         style={styles.input}
         placeholder="Email (@atu.ie)"
@@ -31,7 +46,6 @@ export default function LoginScreen({ navigation }) {
         autoCapitalize="none"
       />
 
-      {/* Password Input Box */}
       <TextInput
         style={styles.input}
         placeholder="Password"
@@ -40,12 +54,14 @@ export default function LoginScreen({ navigation }) {
         secureTextEntry
       />
 
-      {/* Login Button */}
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" />
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
       </TouchableOpacity>
 
-      {/* Link to Sign Up */}
       <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
         <Text style={styles.link}>Don't have an account? Sign up</Text>
       </TouchableOpacity>
@@ -53,7 +69,6 @@ export default function LoginScreen({ navigation }) {
   );
 }
 
-// This is what makes it look nice (colors, spacing, etc.)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
