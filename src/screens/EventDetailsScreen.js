@@ -5,7 +5,18 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
  
-const API_URL = 'http://localhost:3000/api';
+import Constants from 'expo-constants';
+
+const getApiUrl = () => {
+  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:3000/api`;
+  }
+  return 'http://localhost:3000/api';
+};
+
+const API_URL = getApiUrl();
  
 export default function EventDetailsScreen({ route, navigation }) {
   const { eventId } = route.params;
