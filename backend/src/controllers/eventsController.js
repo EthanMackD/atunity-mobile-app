@@ -112,3 +112,51 @@ exports.getAttendees = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch attendees' });
   }
 };
+
+// Bookmark event
+exports.bookmarkEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    await pool.query(
+      'INSERT INTO bookmarks (user_id, event_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, id]
+    );
+    res.json({ success: true, message: 'Event bookmarked' });
+  } catch (error) {
+    console.error('Bookmark error:', error);
+    res.status(500).json({ error: 'Failed to bookmark event' });
+  }
+};
+
+// Remove bookmark
+exports.removeBookmark = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    await pool.query(
+      'DELETE FROM bookmarks WHERE user_id = $1 AND event_id = $2',
+      [userId, id]
+    );
+    res.json({ success: true, message: 'Bookmark removed' });
+  } catch (error) {
+    console.error('Remove bookmark error:', error);
+    res.status(500).json({ error: 'Failed to remove bookmark' });
+  }
+};
+
+// Get all bookmarks
+exports.getBookmarks = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const result = await pool.query(
+      'SELECT e.* FROM events e JOIN bookmarks b ON e.id = b.event_id WHERE b.user_id = $1 ORDER BY b.created_at DESC',
+      [userId]
+    );
+    res.json({ success: true, events: result.rows });
+  } catch (error) {
+    console.error('Get bookmarks error:', error);
+    res.status(500).json({ error: 'Failed to fetch bookmarks' });
+  }
+};
+
