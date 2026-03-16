@@ -29,6 +29,19 @@ export default function EventsListScreen({ navigation }) {
     time: '', location: '', category: '', organizer: ''
   });
 
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Bookmarks')}
+          style={{ marginRight: 16 }}
+        >
+          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>⭐ Saved</Text>
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation]);
+
   const getToken = async () => {
     return await AsyncStorage.getItem('token');
   };
