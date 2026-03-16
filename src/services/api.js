@@ -1,4 +1,5 @@
-const API_URL = 'http://localhost:3000/api';
+//const API_URL = 'http://192.168.1.143:5000/api';
+const API_URL = 'http://localhost:5000/api';
 
 export const api = {
   async register(email, password, name, course, year) {

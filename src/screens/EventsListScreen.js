@@ -8,7 +8,7 @@ export default function EventsListScreen({ navigation }) {
   const [form, setForm] = useState({ title: '', description: '', date: '', location: '', organizer: '' });
 
   useEffect(() => {
-    fetch('http://10.27.16.180:5000/api/events')
+   fetch('http://192.168.1.143:5000/api/events')  
       .then(res => res.json())
       .then(data => { setEvents(data.events || []); setLoading(false); })
       .catch(() => setLoading(false));
@@ -16,7 +16,7 @@ export default function EventsListScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (!form.title || !form.date) return Alert.alert('Title and date are required!');
-    const res = await fetch('http://YOUR_IP:5000/api/events', {
+    const res = await fetch('http://192.168.1.143:5000/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form)
