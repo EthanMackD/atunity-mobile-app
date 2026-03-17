@@ -37,10 +37,10 @@ exports.getEventById = async (req, res) => {
 // POST create event
 exports.createEvent = async (req, res) => {
   try {
-    const { title, description, date, location, category, organizer } = req.body;
+    const { title, description, date, time, location, category, organizer } = req.body;
     const result = await pool.query(
-      'INSERT INTO events (title, description, date, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, description, date, location, category, organizer]
+      'INSERT INTO events (title, description, date, time, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [title, description, date, time, location, category, organizer]
     );
     res.status(201).json({ success: true, event: result.rows[0] });
   } catch (error) {
