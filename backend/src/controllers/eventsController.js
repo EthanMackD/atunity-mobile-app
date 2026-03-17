@@ -15,16 +15,24 @@ exports.getAllEvents = async (req, res) => {
 exports.getEventById = async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('SELECT * FROM events WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
+    const eventResult = await pool.query(
+      'SELECT e.*, COUNT(ea.id) AS attendee_count FROM events e ' +
+      'LEFT JOIN event_attendees ea ON e.id = ea.event_id ' +
+      'WHERE e.id = $1 GROUP BY e.id',
+      [id]
+    );
+ 
+    if (eventResult.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    res.json({ success: true, event: result.rows[0] });
+ 
+    res.json({ success: true, event: eventResult.rows[0] });
   } catch (error) {
     console.error('Get event error:', error);
     res.status(500).json({ error: 'Failed to fetch event' });
   }
 };
+
 
 // POST create event
 exports.createEvent = async (req, res) => {
@@ -45,29 +53,110 @@ exports.createEvent = async (req, res) => {
 exports.markAttendance = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    await pool.query(
-      'INSERT INTO event_attendees (event_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+    const userId = req.userId;
+ 
+    // Check if already attending
+    const existing = await pool.query(
+      'SELECT id FROM event_attendees WHERE event_id = $1 AND user_id = $2',
       [id, userId]
     );
-    res.json({ success: true, message: 'Attendance marked' });
+ 
+    if (existing.rows.length > 0) {
+      // Remove attendance (toggle off)
+      await pool.query(
+        'DELETE FROM event_attendees WHERE event_id = $1 AND user_id = $2',
+        [id, userId]
+      );
+    } else {
+      // Add attendance (toggle on)
+      await pool.query(
+        'INSERT INTO event_attendees (event_id, user_id) VALUES ($1, $2)',
+        [id, userId]
+      );
+    }
+ 
+    // Get updated count
+    const countResult = await pool.query(
+      'SELECT COUNT(*) FROM event_attendees WHERE event_id = $1',
+      [id]
+    );
+ 
+    res.json({
+      success: true,
+      attending: existing.rows.length === 0,
+      attendeeCount: parseInt(countResult.rows[0].count)
+    });
   } catch (error) {
     console.error('Mark attendance error:', error);
     res.status(500).json({ error: 'Failed to mark attendance' });
   }
 };
-
-// GET attendees
+ 
+// Get attendance
 exports.getAttendees = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT users.name FROM users JOIN event_attendees ON users.id = event_attendees.user_id WHERE event_attendees.event_id = $1',
+      'SELECT u.id, u.name, u.course FROM event_attendees ea ' +
+      'JOIN users u ON ea.user_id = u.id WHERE ea.event_id = $1',
       [id]
     );
-    res.json({ success: true, attendees: result.rows });
+ 
+    res.json({
+      success: true,
+      attendees: result.rows,
+      count: result.rows.length
+    });
   } catch (error) {
     console.error('Get attendees error:', error);
     res.status(500).json({ error: 'Failed to fetch attendees' });
   }
 };
+
+// Bookmark event
+exports.bookmarkEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    await pool.query(
+      'INSERT INTO bookmarks (user_id, event_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [userId, id]
+    );
+    res.json({ success: true, message: 'Event bookmarked' });
+  } catch (error) {
+    console.error('Bookmark error:', error);
+    res.status(500).json({ error: 'Failed to bookmark event' });
+  }
+};
+
+// Remove bookmark
+exports.removeBookmark = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    await pool.query(
+      'DELETE FROM bookmarks WHERE user_id = $1 AND event_id = $2',
+      [userId, id]
+    );
+    res.json({ success: true, message: 'Bookmark removed' });
+  } catch (error) {
+    console.error('Remove bookmark error:', error);
+    res.status(500).json({ error: 'Failed to remove bookmark' });
+  }
+};
+
+// Get all bookmarks
+exports.getBookmarks = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const result = await pool.query(
+      'SELECT e.* FROM events e JOIN bookmarks b ON e.id = b.event_id WHERE b.user_id = $1 ORDER BY b.created_at DESC',
+      [userId]
+    );
+    res.json({ success: true, events: result.rows });
+  } catch (error) {
+    console.error('Get bookmarks error:', error);
+    res.status(500).json({ error: 'Failed to fetch bookmarks' });
+  }
+};
+

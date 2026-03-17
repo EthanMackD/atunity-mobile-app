@@ -8,13 +8,25 @@ import SignupScreen from './src/screens/SignupScreen';
 import EventsListScreen from './src/screens/EventsListScreen';
 import EventDetailsScreen from './src/screens/EventDetailsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import BookmarksScreen from './src/screens/BookmarksScreen';
 
 const Stack = createStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
+      <Stack.Navigator 
+  initialRouteName="Login"
+  screenOptions={{
+    headerStyle: {
+      backgroundColor: '#065A82',
+    },
+    headerTintColor: '#FFFFFF',
+    headerTitleStyle: {
+      fontWeight: 'bold',
+    },
+  }}
+>
         {/* Auth Screens */}
         <Stack.Screen 
           name="Login" 
@@ -42,6 +54,12 @@ export default function App() {
           name="Profile" 
           component={ProfileScreen}
           options={{ title: 'My Profile' }}
+        />
+
+        <Stack.Screen 
+          name="Bookmarks" 
+          component={BookmarksScreen}
+          options={{ title: 'Saved Events' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
