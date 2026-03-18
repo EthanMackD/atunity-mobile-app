@@ -3,13 +3,31 @@ const pool = require('../config/database');
 // GET all events
 exports.getAllEvents = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events ORDER BY date ASC');
+    const { search } = req.query;
+    let query;
+    let params = [];
+ 
+    if (search) {
+      query = 'SELECT e.*, COUNT(ea.id) AS attendee_count FROM events e ' +
+        'LEFT JOIN event_attendees ea ON e.id = ea.event_id ' +
+        'WHERE LOWER(e.title) LIKE $1 OR LOWER(e.description) LIKE $1 ' +
+        'OR LOWER(e.location) LIKE $1 OR LOWER(e.organizer) LIKE $1 ' +
+        'GROUP BY e.id ORDER BY e.date ASC';
+      params = [`%${search.toLowerCase()}%`];
+    } else {
+      query = 'SELECT e.*, COUNT(ea.id) AS attendee_count FROM events e ' +
+        'LEFT JOIN event_attendees ea ON e.id = ea.event_id ' +
+        'GROUP BY e.id ORDER BY e.date ASC';
+    }
+ 
+    const result = await pool.query(query, params);
     res.json({ success: true, events: result.rows });
   } catch (error) {
     console.error('Get events error:', error);
     res.status(500).json({ error: 'Failed to fetch events' });
   }
 };
+
 
 // GET single event
 exports.getEventById = async (req, res) => {
