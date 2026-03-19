@@ -14,7 +14,18 @@ const Stack = createStackNavigator();
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Login">
+      <Stack.Navigator 
+  initialRouteName="Login"
+  screenOptions={{
+    headerStyle: {
+      backgroundColor: '#065A82',
+    },
+    headerTintColor: '#FFFFFF',
+    headerTitleStyle: {
+      fontWeight: 'bold',
+    },
+  }}
+>
         {/* Auth Screens */}
         <Stack.Screen 
           name="Login" 

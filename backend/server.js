@@ -12,9 +12,11 @@ app.use(express.json());
 // Routes
 const authRoutes = require('./src/routes/auth');
 const eventsRoutes = require('./src/routes/events');
+const bookmarksRoutes = require('./src/routes/bookmarks');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/bookmarks', bookmarksRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -36,8 +38,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
 
 module.exports = app;
