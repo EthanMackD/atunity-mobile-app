@@ -24,9 +24,11 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [attending, setAttending] = useState(false);
   const [attendeeCount, setAttendeeCount] = useState(0);
+  const [bookmarked, setBookmarked] = useState(false);
  
   useEffect(() => {
     fetchEventDetails();
+    checkBookmark();
   }, []);
  
   const fetchEventDetails = async () => {
@@ -120,6 +122,17 @@ export default function EventDetailsScreen({ route, navigation }) {
               {attending ? "You're Going!" : "I'm Going"}
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+          style={[styles.bookmarkButton,
+            bookmarked && styles.bookmarkedButton]}
+          onPress={toggleBookmark}
+        >
+          <Text style={styles.bookmarkButtonText}>
+            {bookmarked ? 'Bookmarked' : 'Bookmark'}
+          </Text>
+        </TouchableOpacity>
+
         </View>
       </View>
     </ScrollView>
@@ -171,5 +184,54 @@ const styles = StyleSheet.create({
   attendButtonText: {
     color: '#FFFFFF', fontSize: 18, fontWeight: 'bold',
   },
-  attendingButtonText: { color: '#FFFFFF' },
+  attendingButtonText: { color: '#FFFFFF'
+  },
+  bookmarkButton: {
+    backgroundColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 10,
+  },
+  bookmarkedButton: {
+    backgroundColor: '#F59E0B',
+  },
+  bookmarkButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#475569',
+    textAlign: 'center',
+  },
 });
+
+const checkBookmark = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const response = await fetch(`${API_URL.replace('/api', '')}/api/bookmarks/${eventId}/check`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) setBookmarked(data.bookmarked);
+    } catch (error) {
+      console.error('Check bookmark error:', error);
+    }
+  };
+ 
+  const toggleBookmark = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please log in to bookmark');
+        return;
+      }
+      const response = await fetch(`${API_URL.replace('/api', '')}/api/bookmarks/${eventId}/toggle`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) setBookmarked(data.bookmarked);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to bookmark event');
+    }
+  };
