@@ -8,8 +8,22 @@ import {
   Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const API_URL = 'http://localhost:3000/api';
+const getApiUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:3000/api';
+  }
+  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:3000/api`;
+  }
+  return 'http://localhost:3000/api';
+};
+
+const API_URL = getApiUrl();
 
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);

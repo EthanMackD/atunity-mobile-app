@@ -11,7 +11,7 @@ const getApiUrl = () => {
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
-    return `http://192.168.0.22:5000/api`;
+    return `http://${ip}:3000/api`;
   }
   return 'http://localhost:3000/api';
 };
