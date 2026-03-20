@@ -12,9 +12,11 @@ app.use(express.json());
 // Routes
 const authRoutes = require('./src/routes/auth');
 const eventsRoutes = require('./src/routes/events');
+const bookmarksRoutes = require('./src/routes/bookmarks');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/bookmarks', bookmarksRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
