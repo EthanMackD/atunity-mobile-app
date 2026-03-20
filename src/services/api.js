@@ -1,11 +1,21 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
 const getApiUrl = () => {
+  // Web browser: localhost works fine
+  if (Platform.OS === 'web') {
+    return 'http://localhost:3000/api';
+  }
+
+  // Mobile: try to auto-detect the computer's IP from Expo
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
+    console.log('Auto-detected API URL:', `http://${ip}:3000/api`);
     return `http://${ip}:3000/api`;
   }
+
+  // Fallback
   return 'http://localhost:3000/api';
 };
 

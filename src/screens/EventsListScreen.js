@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl
+  View, Text, TouchableOpacity,
+  StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -22,6 +22,8 @@ export default function EventsListScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -36,9 +38,10 @@ export default function EventsListScreen({ navigation }) {
     });
   }, [navigation]);
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (query = '') => {
     try {
-      const response = await fetch(`${API_URL}/events`);
+      const searchParam = query ? `?search=${encodeURIComponent(query)}` : '';
+      const response = await fetch(`${API_URL}/events${searchParam}`);
       const data = await response.json();
       if (data.success) {
         setEvents(data.events);
@@ -51,6 +54,7 @@ export default function EventsListScreen({ navigation }) {
     }
   };
 
+
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -59,6 +63,12 @@ export default function EventsListScreen({ navigation }) {
     setRefreshing(true);
     fetchEvents();
   };
+
+   const handleSearch = (text) => {
+    setSearchQuery(text);
+    fetchEvents(text);
+  };
+
 
   const getCategoryColor = (category) => {
     const colors = {
@@ -77,8 +87,9 @@ export default function EventsListScreen({ navigation }) {
     });
   };
 
-  const renderEvent = ({ item }) => (
+  const renderEvent = (item) => (
     <TouchableOpacity
+      key={item.id.toString()}
       style={styles.card}
       onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
     >
@@ -111,24 +122,35 @@ export default function EventsListScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        data={events}
-        renderItem={renderEvent}
-        keyExtractor={(item) => item.id.toString()}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search events..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+          autoCapitalize="none"
+        />
+      </View>
+
+      <ScrollView
+        style={styles.scrollView}
         contentContainerStyle={styles.list}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No events found</Text>
+      >
+        {events.length === 0
+          ? <Text style={styles.emptyText}>No events found</Text>
+          : events.map(renderEvent)
         }
-      />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
+  scrollView: { flex: 1, ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {}) },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   list: { padding: 16 },
   card: {
@@ -171,5 +193,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     marginTop: 40,
+  },
+  searchContainer: {
+    padding: 16,
+    paddingBottom: 0,
+  },
+  searchInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
 });
