@@ -130,3 +130,26 @@ exports.getAttendees = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch attendees' });
   }
 };
+
+  // Get events the user has attended/RSVP'd to
+exports.getMyEvents = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const result = await pool.query(
+      'SELECT e.* FROM event_attendees ea ' +
+      'JOIN events e ON ea.event_id = e.id ' +
+      'WHERE ea.user_id = $1 ORDER BY e.date ASC',
+      [userId]
+    );
+
+    const now = new Date();
+    const upcoming = result.rows.filter(e => new Date(e.date) >= now);
+    const past = result.rows.filter(e => new Date(e.date) < now);
+
+    res.json({ success: true, upcoming, past });
+  } catch (error) {
+    console.error('Get my events error:', error);
+    res.status(500).json({ error: 'Failed to fetch your events' });
+  }
+};
+
