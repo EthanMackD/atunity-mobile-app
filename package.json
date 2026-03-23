@@ -3,20 +3,21 @@
   "main": "expo/AppEntry",
   "version": "1.0.0",
   "scripts": {
-  "start": "expo start",
-  "android": "expo start --android",
-  "ios": "expo start --ios",
-  "web": "expo start --web",
-  "test": "jest"
-},
-"jest": {
-  "preset": "jest-expo"
-},
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "test": "jest"
+  },
+  "jest": {
+    "preset": "jest-expo"
+  },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/native": "^7.1.8",
     "@react-navigation/stack": "^7.3.2",
     "expo": "~54.0.33",
+    "expo-location": "~19.0.8",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "fbjs": "^3.0.5",
