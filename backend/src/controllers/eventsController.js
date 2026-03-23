@@ -49,6 +49,34 @@ exports.createEvent = async (req, res) => {
   }
 };
 
+// DELETE event
+exports.deleteEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Delete event request for ID:', id);
+
+    // Check if event exists
+    const eventResult = await pool.query(
+      'SELECT id FROM events WHERE id = $1',
+      [id]
+    );
+
+    if (eventResult.rows.length === 0) {
+      console.log('Event not found:', id);
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    // Delete the event (cascades will delete attendees and reminders)
+    const deleteResult = await pool.query('DELETE FROM events WHERE id = $1', [id]);
+    console.log('Event deleted:', id, 'Rows deleted:', deleteResult.rowCount);
+
+    res.status(200).json({ success: true, message: 'Event deleted successfully' });
+  } catch (error) {
+    console.error('Delete event error:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete event' });
+  }
+};
+
 // Mark attendance
 exports.markAttendance = async (req, res) => {
   try {
@@ -157,6 +185,98 @@ exports.getBookmarks = async (req, res) => {
   } catch (error) {
     console.error('Get bookmarks error:', error);
     res.status(500).json({ error: 'Failed to fetch bookmarks' });
+  }
+};
+
+// Get reminder status for an event
+exports.getReminderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    const result = await pool.query(
+      'SELECT id, reminder_enabled, reminder_minutes_before FROM event_reminders WHERE event_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      // No reminder record exists, return default
+      return res.json({
+        success: true,
+        reminderExists: false,
+        reminderEnabled: false,
+        reminderMinutesBefore: 60
+      });
+    }
+
+    res.json({
+      success: true,
+      reminderExists: true,
+      reminderEnabled: result.rows[0].reminder_enabled,
+      reminderMinutesBefore: result.rows[0].reminder_minutes_before
+    });
+  } catch (error) {
+    console.error('Get reminder status error:', error);
+    res.status(500).json({ error: 'Failed to fetch reminder status' });
+  }
+};
+
+// Toggle reminder for an event
+exports.toggleReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    const { reminderEnabled, reminderMinutesBefore = 60 } = req.body;
+
+    // Check if reminder record exists
+    const existing = await pool.query(
+      'SELECT id FROM event_reminders WHERE event_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    let result;
+    if (existing.rows.length > 0) {
+      // Update existing reminder
+      result = await pool.query(
+        'UPDATE event_reminders SET reminder_enabled = $1, reminder_minutes_before = $2, updated_at = NOW() WHERE event_id = $3 AND user_id = $4 RETURNING *',
+        [reminderEnabled, reminderMinutesBefore, id, userId]
+      );
+    } else {
+      // Create new reminder record
+      result = await pool.query(
+        'INSERT INTO event_reminders (event_id, user_id, reminder_enabled, reminder_minutes_before) VALUES ($1, $2, $3, $4) RETURNING *',
+        [id, userId, reminderEnabled, reminderMinutesBefore]
+      );
+    }
+
+    res.json({
+      success: true,
+      reminder: {
+        reminderEnabled: result.rows[0].reminder_enabled,
+        reminderMinutesBefore: result.rows[0].reminder_minutes_before
+      }
+    });
+  } catch (error) {
+    console.error('Toggle reminder error:', error);
+    res.status(500).json({ error: 'Failed to update reminder' });
+  }
+};
+
+// Disable all reminders for an event
+exports.disableReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    await pool.query(
+      'UPDATE event_reminders SET reminder_enabled = FALSE WHERE event_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    res.json({ success: true, message: 'Reminder disabled' });
+  } catch (error) {
+    console.error('Disable reminder error:', error);
+    res.status(500).json({ error: 'Failed to disable reminder' });
   }
 };
 

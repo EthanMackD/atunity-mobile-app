@@ -4,12 +4,20 @@ const eventsController = require('../controllers/eventsController');
 const authMiddleware = require('../middleware/auth');
 
 router.get('/', eventsController.getAllEvents);
-router.get('/bookmarks', authMiddleware, eventsController.getBookmarks); 
-router.get('/:id', eventsController.getEventById);
-router.post('/:id/attend', authMiddleware, eventsController.markAttendance);
-router.get('/:id/attendees', eventsController.getAttendees);
 router.post('/', eventsController.createEvent);
+router.get('/bookmarks', authMiddleware, eventsController.getBookmarks);
+
+// Specific routes (before generic /:id)
+router.get('/:id/attendees', eventsController.getAttendees);
+router.get('/:id/reminders', authMiddleware, eventsController.getReminderStatus);
+router.post('/:id/reminders', authMiddleware, eventsController.toggleReminder);
+router.delete('/:id/reminders', authMiddleware, eventsController.disableReminder);
+router.post('/:id/attend', authMiddleware, eventsController.markAttendance);
 router.post('/:id/bookmark', authMiddleware, eventsController.bookmarkEvent);
 router.delete('/:id/bookmark', authMiddleware, eventsController.removeBookmark);
+router.delete('/:id', authMiddleware, eventsController.deleteEvent);
+
+// Generic route (must be last)
+router.get('/:id', eventsController.getEventById);
 
 module.exports = router;
