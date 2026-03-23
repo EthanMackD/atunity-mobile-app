@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert
+  StyleSheet, ActivityIndicator, Alert, Switch
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
  
@@ -24,11 +24,56 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [attending, setAttending] = useState(false);
   const [attendeeCount, setAttendeeCount] = useState(0);
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderMinutesBefore, setReminderMinutesBefore] = useState(60);
+  const [loadingReminder, setLoadingReminder] = useState(false);
+  const [userToken, setUserToken] = useState(null);
+  const [isEventPast, setIsEventPast] = useState(false);
  
   useEffect(() => {
     fetchEventDetails();
+    loadUserToken();
   }, []);
+
+  useEffect(() => {
+    if (event) {
+      checkIfEventPast();
+    }
+  }, [event]);
+
+  useEffect(() => {
+    if (userToken) {
+      fetchReminderStatus();
+    }
+  }, [userToken]);
  
+  const loadUserToken = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      setUserToken(token);
+    } catch (error) {
+      console.error('Failed to load token:', error);
+    }
+  };
+
+  const checkIfEventPast = () => {
+    if (!event) return;
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    const isPast = eventDate < today;
+    setIsEventPast(isPast);
+    
+    if (isPast) {
+      Alert.alert(
+        'Event No Longer Available',
+        'This event is in the past and is no longer available.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const fetchEventDetails = async () => {
     try {
       const response = await fetch(`${API_URL}/events/${eventId}`);
@@ -41,6 +86,60 @@ export default function EventDetailsScreen({ route, navigation }) {
       console.error('Failed to fetch event:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchReminderStatus = async () => {
+    if (!userToken) return;
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+        headers: { 'Authorization': `Bearer ${userToken}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReminderEnabled(data.reminderEnabled);
+        setReminderMinutesBefore(data.reminderMinutesBefore);
+      }
+    } catch (error) {
+      console.error('Failed to fetch reminder status:', error);
+    }
+  };
+
+  const handleToggleReminder = async (value) => {
+    if (!userToken) {
+      Alert.alert('Error', 'Please log in to set reminders');
+      return;
+    }
+
+    setLoadingReminder(true);
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({
+          reminderEnabled: value,
+          reminderMinutesBefore: reminderMinutesBefore,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReminderEnabled(value);
+        Alert.alert('Success', 
+          value 
+            ? `Reminder set for ${reminderMinutesBefore} minutes before the event` 
+            : 'Reminder disabled'
+        );
+      } else {
+        Alert.alert('Error', 'Failed to update reminder');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update reminder');
+      console.error('Reminder toggle error:', error);
+    } finally {
+      setLoadingReminder(false);
     }
   };
  
@@ -112,14 +211,37 @@ export default function EventDetailsScreen({ route, navigation }) {
           </Text>
           <TouchableOpacity
             style={[styles.attendButton,
-              attending && styles.attendingButton]}
+              attending && styles.attendingButton,
+              isEventPast && styles.disabledButton]}
             onPress={handleAttend}
+            disabled={isEventPast}
           >
             <Text style={[styles.attendButtonText,
-              attending && styles.attendingButtonText]}>
-              {attending ? "You're Going!" : "I'm Going"}
+              attending && styles.attendingButtonText,
+              isEventPast && styles.disabledText]}>
+              {isEventPast ? 'Event Ended' : (attending ? "You're Going!" : "I'm Going")}
             </Text>
           </TouchableOpacity>
+        </View>
+
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderHeader}>
+            <View>
+              <Text style={styles.reminderTitle}>Event Reminder</Text>
+              <Text style={styles.reminderDescription}>
+                {reminderEnabled 
+                  ? `Get notified ${reminderMinutesBefore} minutes before` 
+                  : 'Enable to receive a reminder'}
+              </Text>
+            </View>
+            <Switch
+              value={reminderEnabled}
+              onValueChange={handleToggleReminder}
+              disabled={loadingReminder || isEventPast}
+              trackColor={{ false: '#CBD5E1', true: '#10B981' }}
+              thumbColor={reminderEnabled ? '#10B981' : '#F8FAFC'}
+            />
+          </View>
         </View>
       </View>
     </ScrollView>
@@ -172,4 +294,29 @@ const styles = StyleSheet.create({
     color: '#FFFFFF', fontSize: 18, fontWeight: 'bold',
   },
   attendingButtonText: { color: '#FFFFFF' },
+  reminderCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 12,
+    padding: 16, marginBottom: 40,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
+  },
+  reminderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reminderTitle: {
+    fontSize: 18, fontWeight: 'bold',
+    color: '#1E293B', marginBottom: 4,
+  },
+  reminderDescription: {
+    fontSize: 14, color: '#64748B',
+  },
+  disabledButton: {
+    backgroundColor: '#CBD5E1',
+    opacity: 0.6,
+  },
+  disabledText: {
+    color: '#64748B',
+  },
 });
