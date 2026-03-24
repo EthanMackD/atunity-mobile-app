@@ -147,6 +147,13 @@ export default function ProfileScreen({ navigation }) {
 
       </View>
 
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate('History')}
+      >
+        <Text style={styles.historyButtonText}>My Event History</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -233,5 +240,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold'
-  }
+  },
+
+  historyButton: {
+    backgroundColor: '#065A82',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  
+  historyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

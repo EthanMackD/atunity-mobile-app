@@ -8,6 +8,7 @@ import SignupScreen from './src/screens/SignupScreen';
 import EventsListScreen from './src/screens/EventsListScreen';
 import EventDetailsScreen from './src/screens/EventDetailsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +54,11 @@ export default function App() {
           name="Profile" 
           component={ProfileScreen}
           options={{ title: 'My Profile' }}
+        />
+        <Stack.Screen 
+          name="History" 
+          component={HistoryScreen}
+          options={{ title: 'My History' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
