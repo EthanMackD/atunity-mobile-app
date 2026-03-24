@@ -2,18 +2,13 @@ import * as Location from 'expo-location';
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView
-} from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-import Constants from 'expo-constants';
-import {
-  View, Text, TouchableOpacity,
   StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView, Alert
 } from 'react-native';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 const getApiUrl = () => {
+  if (Platform.OS === 'web') return 'http://localhost:3000/api';
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
@@ -24,7 +19,6 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-// Approximate coordinates for ATU campus locations
 const LOCATION_COORDS = {
   'Main Hall': { lat: 53.2707, lng: -9.0568 },
   'Computer Lab A': { lat: 53.2710, lng: -9.0572 },
@@ -33,7 +27,7 @@ const LOCATION_COORDS = {
   'Library Room 201': { lat: 53.2708, lng: -9.0575 },
   'Student Bar': { lat: 53.2705, lng: -9.0565 },
 };
- 
+
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -45,7 +39,6 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-
 export default function EventsListScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -53,8 +46,6 @@ export default function EventsListScreen({ navigation }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortByDistance, setSortByDistance] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
-
-
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
@@ -85,7 +76,6 @@ export default function EventsListScreen({ navigation }) {
     }
   };
 
-
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -95,11 +85,42 @@ export default function EventsListScreen({ navigation }) {
     fetchEvents();
   };
 
-   const handleSearch = (text) => {
+  const handleSearch = (text) => {
     setSearchQuery(text);
     fetchEvents(text);
   };
 
+  const handleSortByLocation = async () => {
+    if (sortByDistance) {
+      setSortByDistance(false);
+      fetchEvents(searchQuery);
+      return;
+    }
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Enable location to sort by distance.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation(location.coords);
+
+      const sorted = [...events].sort((a, b) => {
+        const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
+        const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
+        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
+        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
+        return distA - distB;
+      });
+
+      setEvents(sorted);
+      setSortByDistance(true);
+    } catch (error) {
+      Alert.alert('Error', 'Could not get your location');
+    }
+  };
 
   const getCategoryColor = (category) => {
     const colors = {
@@ -172,7 +193,6 @@ export default function EventsListScreen({ navigation }) {
         </Text>
       </TouchableOpacity>
 
-
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.list}
@@ -188,38 +208,6 @@ export default function EventsListScreen({ navigation }) {
     </View>
   );
 }
-
-const handleSortByLocation = async () => {
-    if (sortByDistance) {
-      setSortByDistance(false);
-      fetchEvents(searchQuery);
-      return;
-    }
- 
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Enable location to sort by distance.');
-        return;
-      }
- 
-      const location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
- 
-      const sorted = [...events].sort((a, b) => {
-        const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
-        const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
-        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
-        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
-        return distA - distB;
-      });
- 
-      setEvents(sorted);
-      setSortByDistance(true);
-    } catch (error) {
-      Alert.alert('Error', 'Could not get your location');
-    }
-  };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
@@ -284,7 +272,6 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-
   locationButton: {
     marginHorizontal: 16,
     marginVertical: 8,
@@ -304,5 +291,4 @@ const styles = StyleSheet.create({
   locationButtonTextActive: {
     color: '#FFFFFF',
   },
-
 });
