@@ -11,4 +11,4 @@ Your campus, unified.
 Coming soon...
 
 ## Team
-[Ethan McDonnell, Qahraman Taha, Bogdan Nwachukwu,Adam Durand]
+[Ethan McDonnell, Qahraman Taha, Bogdan Nwachukwu, Adam Durand]
