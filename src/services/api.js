@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 const getApiUrl = () => {
   // Web browser: localhost works fine
   if (Platform.OS === 'web') {
-    return 'http://localhost:3000/api';
+    return 'http://localhost:5000/api';
   }
 
   // Mobile: try to auto-detect the computer's IP from Expo

@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
+  Platform,
+  ScrollView
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
@@ -24,7 +30,6 @@ export default function EventsListScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -43,6 +48,7 @@ export default function EventsListScreen({ navigation }) {
       const searchParam = query ? `?search=${encodeURIComponent(query)}` : '';
       const response = await fetch(`${API_URL}/events${searchParam}`);
       const data = await response.json();
+
       if (data.success) {
         setEvents(data.events);
       }
@@ -54,36 +60,45 @@ export default function EventsListScreen({ navigation }) {
     }
   };
 
-
   useEffect(() => {
     fetchEvents();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents(searchQuery);
+    }, [searchQuery])
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
-    fetchEvents();
+    fetchEvents(searchQuery);
   };
 
-   const handleSearch = (text) => {
+  const handleSearch = (text) => {
     setSearchQuery(text);
     fetchEvents(text);
   };
 
-
   const getCategoryColor = (category) => {
-    const colors = {
-      academic: '#3B82F6',
-      social: '#8B5CF6',
-      sports: '#10B981',
-      careers: '#F59E0B',
-    };
-    return colors[category] || '#64748B';
+  const safeCategory = category ? category.toLowerCase().trim() : '';
+
+  const colors = {
+    academic: '#3B82F6',
+    social: '#8B5CF6',
+    sports: '#10B981',
+    careers: '#F59E0B',
   };
+
+  return colors[safeCategory] || '#64748B';
+};
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
-      weekday: 'short', month: 'short', day: 'numeric'
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -94,20 +109,28 @@ export default function EventsListScreen({ navigation }) {
       onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
     >
       <View style={styles.cardHeader}>
-        <View style={[styles.categoryBadge,
-          { backgroundColor: getCategoryColor(item.category) }]}>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: getCategoryColor(item.category) }
+          ]}
+        >
           <Text style={styles.categoryText}>
             {item.category ? item.category.toUpperCase() : 'EVENT'}
           </Text>
         </View>
+
         <Text style={styles.attendeeCount}>
           {item.attendee_count || 0} going
         </Text>
       </View>
+
       <Text style={styles.eventTitle}>{item.title}</Text>
+
       <Text style={styles.eventInfo}>
         {formatDate(item.date)} at {item.time}
       </Text>
+
       <Text style={styles.eventLocation}>{item.location}</Text>
     </TouchableOpacity>
   );
@@ -132,6 +155,15 @@ export default function EventsListScreen({ navigation }) {
         />
       </View>
 
+      <View style={styles.createButtonContainer}>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => navigation.navigate('CreateEvent')}
+        >
+          <Text style={styles.createButtonText}>Create Event</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.list}
@@ -139,20 +171,33 @@ export default function EventsListScreen({ navigation }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {events.length === 0
-          ? <Text style={styles.emptyText}>No events found</Text>
-          : events.map(renderEvent)
-        }
+        {events.length === 0 ? (
+          <Text style={styles.emptyText}>No events found</Text>
+        ) : (
+          events.map(renderEvent)
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollView: { flex: 1, ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {}) },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC'
+  },
+  scrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {})
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  list: {
+    padding: 16
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -180,15 +225,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  attendeeCount: { fontSize: 13, color: '#64748B' },
+  attendeeCount: {
+    fontSize: 13,
+    color: '#64748B'
+  },
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 4,
   },
-  eventInfo: { fontSize: 14, color: '#065A82', marginBottom: 2 },
-  eventLocation: { fontSize: 14, color: '#64748B' },
+  eventInfo: {
+    fontSize: 14,
+    color: '#065A82',
+    marginBottom: 2
+  },
+  eventLocation: {
+    fontSize: 14,
+    color: '#64748B'
+  },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
@@ -210,5 +265,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 2,
     elevation: 1,
+  },
+  createButtonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  createButton: {
+    backgroundColor: '#065A82',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
