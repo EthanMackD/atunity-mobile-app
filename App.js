@@ -9,6 +9,7 @@ import EventsListScreen from './src/screens/EventsListScreen';
 import EventDetailsScreen from './src/screens/EventDetailsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import CreateEventScreen from './src/screens/CreateEventScreen';
+import EventMapScreen from './src/screens/EventMapScreen';
 
 const Stack = createStackNavigator();
 
@@ -61,6 +62,12 @@ export default function App() {
           name="CreateEvent"
           component={CreateEventScreen}
           options={{ title: 'Create Event' }}
+        />
+
+        <Stack.Screen
+          name="EventMap"
+          component={EventMapScreen}
+          options={{ title: 'Event Map' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
