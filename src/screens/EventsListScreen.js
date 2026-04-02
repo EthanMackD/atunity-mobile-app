@@ -100,6 +100,38 @@ export default function EventsListScreen({ navigation }) {
     fetchEvents(text);
   };
 
+  const handleSortByLocation = async () => {
+    if (sortByDistance) {
+      setSortByDistance(false);
+      fetchEvents(searchQuery);
+      return;
+    }
+ 
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Enable location to sort by distance.');
+        return;
+      }
+ 
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation(location.coords);
+ 
+      const sorted = [...events].sort((a, b) => {
+        const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
+        const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
+        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
+        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
+        return distA - distB;
+      });
+ 
+      setEvents(sorted);
+      setSortByDistance(true);
+    } catch (error) {
+      Alert.alert('Error', 'Could not get your location');
+    }
+  };
+
 
   const getCategoryColor = (category) => {
     const colors = {
@@ -188,38 +220,6 @@ export default function EventsListScreen({ navigation }) {
     </View>
   );
 }
-
-const handleSortByLocation = async () => {
-    if (sortByDistance) {
-      setSortByDistance(false);
-      fetchEvents(searchQuery);
-      return;
-    }
- 
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Enable location to sort by distance.');
-        return;
-      }
- 
-      const location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
- 
-      const sorted = [...events].sort((a, b) => {
-        const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
-        const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
-        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
-        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
-        return distA - distB;
-      });
- 
-      setEvents(sorted);
-      setSortByDistance(true);
-    } catch (error) {
-      Alert.alert('Error', 'Could not get your location');
-    }
-  };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFC' },
