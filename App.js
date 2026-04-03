@@ -2,13 +2,15 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
-// Import all your screens
 import LoginScreen from './src/screens/LoginScreen';
 import SignupScreen from './src/screens/SignupScreen';
 import EventsListScreen from './src/screens/EventsListScreen';
 import EventDetailsScreen from './src/screens/EventDetailsScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import CreateEventScreen from './src/screens/CreateEventScreen';
+import TutorProfileScreen from './src/screens/TutorProfileScreen';
+import TutorsListScreen from './src/screens/TutorsListScreen';
+import TutorDetailsScreen from './src/screens/TutorDetailsScreen';
 
 const Stack = createStackNavigator();
 
@@ -61,6 +63,24 @@ export default function App() {
           name="CreateEvent"
           component={CreateEventScreen}
           options={{ title: 'Create Event' }}
+        />
+
+        <Stack.Screen
+          name="TutorProfile"
+          component={TutorProfileScreen}
+          options={{ title: 'Tutor Profile' }}
+        />
+
+        <Stack.Screen
+          name="TutorsList"
+          component={TutorsListScreen}
+          options={{ title: 'Tutors' }}
+        />
+
+        <Stack.Screen
+          name="TutorDetails"
+          component={TutorDetailsScreen}
+          options={{ title: 'Tutor Details' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

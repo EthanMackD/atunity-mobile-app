@@ -33,12 +33,25 @@ export default function EventsListScreen({ navigation }) {
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Profile')}
-          style={{ marginRight: 16 }}
-        >
-          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TutorsList')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+              Tutors
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>
+              Profile
+            </Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation]);
