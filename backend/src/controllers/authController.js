@@ -4,10 +4,10 @@ const pool = require('../config/database');
 
 exports.register = async (req, res) => {
   try {
-    const { email, password, name, course, year } = req.body;
+    const { email, password, name, course, year, role } = req.body;
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: 'Email, password, and name are required' });
+    if (!email || !password || !name || !role) {
+      return res.status(400).json({ error: 'Email, password, name and role are required' });
     }
 
     if (!email.endsWith('@atu.ie') && !email.endsWith('@gmit.ie')) {
@@ -26,8 +26,8 @@ exports.register = async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      'INSERT INTO users (email, password_hash, name, course, year) VALUES ($1, $2, $3, $4, $5) RETURNING id, email, name, course, year, created_at',
-      [email, passwordHash, name, course || null, year || null]
+      'INSERT INTO users (email, password_hash, name, course, year, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, email, name, course, year, role, created_at',
+      [email, passwordHash, name, course || null, year || null, role]
     );
 
     const user = result.rows[0];
@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, name, course, year, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, course, year, role, subjects, availability, experience, description, created_at FROM users WHERE id = $1',
       [req.userId]
     );
 
