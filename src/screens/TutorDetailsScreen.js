@@ -112,6 +112,13 @@ export default function TutorDetailsScreen({ route, navigation }) {
           <Text style={styles.label}>Description</Text>
           <Text style={styles.value}>{tutor.description || 'Not set'}</Text>
         </View>
+
+        <View style={styles.section}>
+          <Text style={styles.label}>Price</Text>
+          <Text style={styles.value}>
+            {tutor.price !== null && tutor.price !== undefined ? `€${tutor.price}` : 'Not set'}
+          </Text>
+        </View>
       </View>
 
       {isOwnTutorProfile && (

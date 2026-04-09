@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, name, course, year, role, subjects, availability, experience, description, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, course, year, role, subjects, availability, experience, description, price, created_at FROM users WHERE id = $1',
       [req.userId]
     );
 
