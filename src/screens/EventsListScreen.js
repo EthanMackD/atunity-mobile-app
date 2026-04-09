@@ -1,18 +1,20 @@
-import * as Location from 'expo-location';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import MapView, { Marker } from '../mocks/react-native-maps';
 import {
-  View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
+  Platform,
+  ScrollView,
+  Alert
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
-import {
-  View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView, Alert
-} from 'react-native';
-
-
+ 
 const getApiUrl = () => {
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
@@ -21,41 +23,25 @@ const getApiUrl = () => {
   }
   return 'http://localhost:3000/api';
 };
-
+ 
 const API_URL = getApiUrl();
-
-// Approximate coordinates for ATU campus locations
+ 
 const LOCATION_COORDS = {
-  'Main Hall': { lat: 53.2707, lng: -9.0568 },
-  'Computer Lab A': { lat: 53.2710, lng: -9.0572 },
-  'Sports Hall': { lat: 53.2703, lng: -9.0560 },
-  'Exhibition Center': { lat: 53.2715, lng: -9.0580 },
-  'Library Room 201': { lat: 53.2708, lng: -9.0575 },
-  'Student Bar': { lat: 53.2705, lng: -9.0565 },
+  'Main Hall':         { lat: 53.2784, lng: -9.0103 },
+  'Computer Lab A':    { lat: 53.2787, lng: -9.0098 },
+  'Sports Hall':       { lat: 53.2779, lng: -9.0109 },
+  'Exhibition Center': { lat: 53.2791, lng: -9.0095 },
+  'Library Room 201':  { lat: 53.2782, lng: -9.0099 },
+  'Student Bar':       { lat: 53.2780, lng: -9.0105 },
 };
  
-const getDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c;
-};
-
-
 export default function EventsListScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortByDistance, setSortByDistance] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
-
-
-
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+ 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
@@ -68,12 +54,13 @@ export default function EventsListScreen({ navigation }) {
       ),
     });
   }, [navigation]);
-
+ 
   const fetchEvents = async (query = '') => {
     try {
       const searchParam = query ? `?search=${encodeURIComponent(query)}` : '';
       const response = await fetch(`${API_URL}/events${searchParam}`);
       const data = await response.json();
+ 
       if (data.success) {
         setEvents(data.events);
       }
@@ -84,72 +71,75 @@ export default function EventsListScreen({ navigation }) {
       setRefreshing(false);
     }
   };
-
-
+ 
   useEffect(() => {
     fetchEvents();
   }, []);
-
+ 
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents(searchQuery);
+    }, [searchQuery])
+  );
+ 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchEvents();
+    fetchEvents(searchQuery);
   };
-
-   const handleSearch = (text) => {
+ 
+  const handleSearch = (text) => {
     setSearchQuery(text);
     fetchEvents(text);
   };
-
-  const handleSortByLocation = async () => {
-    if (sortByDistance) {
-      setSortByDistance(false);
-      fetchEvents(searchQuery);
-      return;
-    }
  
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission needed', 'Enable location to sort by distance.');
-        return;
-      }
+  const renderMapView = () => (
+    <MapView
+      style={styles.map}
+      initialRegion={{
+        latitude: 53.2785,
+        longitude: -9.0102,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      }}
+    >
+      {events.map((item) => {
+        const coords = LOCATION_COORDS[item.location];
+        if (!coords) return null;
+        return (
+          <Marker
+            key={item.id.toString()}
+            coordinate={{ latitude: coords.lat, longitude: coords.lng }}
+            title={item.title}
+            description={item.location}
+            onCalloutPress={() =>
+              navigation.navigate('EventDetails', { eventId: item.id })
+            }
+          />
+        );
+      })}
+    </MapView>
+  );
  
-      const location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
- 
-      const sorted = [...events].sort((a, b) => {
-        const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
-        const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
-        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
-        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
-        return distA - distB;
-      });
- 
-      setEvents(sorted);
-      setSortByDistance(true);
-    } catch (error) {
-      Alert.alert('Error', 'Could not get your location');
-    }
-  };
-
-
   const getCategoryColor = (category) => {
+    const safeCategory = category ? category.toLowerCase().trim() : '';
     const colors = {
       academic: '#3B82F6',
       social: '#8B5CF6',
       sports: '#10B981',
       careers: '#F59E0B',
     };
-    return colors[category] || '#64748B';
+    return colors[safeCategory] || '#64748B';
   };
-
+ 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
-      weekday: 'short', month: 'short', day: 'numeric'
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
-
+ 
   const renderEvent = (item) => (
     <TouchableOpacity
       key={item.id.toString()}
@@ -157,8 +147,12 @@ export default function EventsListScreen({ navigation }) {
       onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
     >
       <View style={styles.cardHeader}>
-        <View style={[styles.categoryBadge,
-          { backgroundColor: getCategoryColor(item.category) }]}>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: getCategoryColor(item.category) }
+          ]}
+        >
           <Text style={styles.categoryText}>
             {item.category ? item.category.toUpperCase() : 'EVENT'}
           </Text>
@@ -174,7 +168,7 @@ export default function EventsListScreen({ navigation }) {
       <Text style={styles.eventLocation}>{item.location}</Text>
     </TouchableOpacity>
   );
-
+ 
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -182,7 +176,7 @@ export default function EventsListScreen({ navigation }) {
       </View>
     );
   }
-
+ 
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -194,38 +188,71 @@ export default function EventsListScreen({ navigation }) {
           autoCapitalize="none"
         />
       </View>
-
-      <TouchableOpacity
-        style={[styles.locationButton, sortByDistance && styles.locationButtonActive]}
-        onPress={handleSortByLocation}
-      >
-        <Text style={[styles.locationButtonText, sortByDistance && styles.locationButtonTextActive]}>
-          {sortByDistance ? 'Sorted by Nearest' : 'Sort by Nearest'}
-        </Text>
-      </TouchableOpacity>
-
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {events.length === 0
-          ? <Text style={styles.emptyText}>No events found</Text>
-          : events.map(renderEvent)
-        }
-      </ScrollView>
+ 
+      <View style={styles.createButtonContainer}>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => navigation.navigate('CreateEvent')}
+        >
+          <Text style={styles.createButtonText}>Create Event</Text>
+        </TouchableOpacity>
+      </View>
+ 
+      <View style={styles.viewToggleContainer}>
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('list')}
+        >
+          <Text style={[styles.toggleButtonText, viewMode === 'list' && styles.toggleButtonTextActive]}>
+            List
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('map')}
+        >
+          <Text style={[styles.toggleButtonText, viewMode === 'map' && styles.toggleButtonTextActive]}>
+            Map
+          </Text>
+        </TouchableOpacity>
+      </View>
+ 
+      {viewMode === 'map' ? renderMapView() : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {events.length === 0 ? (
+            <Text style={styles.emptyText}>No events found</Text>
+          ) : (
+            events.map(renderEvent)
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
-
+ 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollView: { flex: 1, ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {}) },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC'
+  },
+  scrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {})
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  list: {
+    padding: 16
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -253,15 +280,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  attendeeCount: { fontSize: 13, color: '#64748B' },
+  attendeeCount: {
+    fontSize: 13,
+    color: '#64748B'
+  },
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 4,
   },
-  eventInfo: { fontSize: 14, color: '#065A82', marginBottom: 2 },
-  eventLocation: { fontSize: 14, color: '#64748B' },
+  eventInfo: {
+    fontSize: 14,
+    color: '#065A82',
+    marginBottom: 2
+  },
+  eventLocation: {
+    fontSize: 14,
+    color: '#64748B'
+  },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
@@ -284,25 +321,49 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
-
-  locationButton: {
-    marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 12,
+  createButtonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  createButton: {
+    backgroundColor: '#065A82',
     borderRadius: 12,
-    backgroundColor: '#E2E8F0',
+    paddingVertical: 14,
     alignItems: 'center',
   },
-  locationButtonActive: {
-    backgroundColor: '#10B981',
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
-  locationButtonText: {
+  map: {
+    flex: 1,
+    width: '100%',
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#065A82',
+  },
+  toggleButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#64748B',
   },
-  locationButtonTextActive: {
+  toggleButtonTextActive: {
     color: '#FFFFFF',
   },
-
 });
