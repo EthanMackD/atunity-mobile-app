@@ -4,19 +4,9 @@ import {
   StyleSheet, ActivityIndicator
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
 import { useFocusEffect } from '@react-navigation/native';
 
-const getApiUrl = () => {
-  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
-  if (debuggerHost) {
-    const ip = debuggerHost.split(':')[0];
-    return `http://${ip}:5000/api`;
-  }
-  return 'http://localhost:5000/api';
-};
-
-const API_URL = getApiUrl();
+const API_URL = 'http://192.168.1.143:5000/api';
 
 export default function BookmarksScreen({ navigation }) {
   const [events, setEvents] = useState([]);

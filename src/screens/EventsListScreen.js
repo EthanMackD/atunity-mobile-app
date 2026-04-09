@@ -5,18 +5,7 @@ import {
   TextInput, Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Constants from 'expo-constants';
-
-const getApiUrl = () => {
-  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
-  if (debuggerHost) {
-    const ip = debuggerHost.split(':')[0];
-    return `http://${ip}:5000/api`;
-  }
-  return 'http://localhost:5000/api';
-};
-
-const API_URL = getApiUrl();
+const API_URL = 'http://192.168.1.143:5000/api';
 
 export default function EventsListScreen({ navigation }) {
   const [events, setEvents] = useState([]);
@@ -99,10 +88,15 @@ export default function EventsListScreen({ navigation }) {
 
   const handleSubmit = async () => {
     if (!form.title || !form.date) return Alert.alert('Error', 'Title and date are required!');
+    const token = await getToken();
+    if (!token) return Alert.alert('Error', 'Please log in to create events');
     try {
       const response = await fetch(`${API_URL}/events`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
         body: JSON.stringify(form)
       });
       const data = await response.json();

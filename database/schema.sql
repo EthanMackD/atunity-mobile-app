@@ -22,6 +22,7 @@ CREATE TABLE events (
   location VARCHAR(255) NOT NULL,
   category VARCHAR(50),
   organizer VARCHAR(255),
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
 

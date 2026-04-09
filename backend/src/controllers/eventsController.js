@@ -38,9 +38,10 @@ exports.getEventById = async (req, res) => {
 exports.createEvent = async (req, res) => {
   try {
     const { title, description, date, time, location, category, organizer } = req.body;
+    const createdBy = req.userId || null;
     const result = await pool.query(
-      'INSERT INTO events (title, description, date, time, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [title, description, date, time, location, category, organizer]
+      'INSERT INTO events (title, description, date, time, location, category, organizer, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+      [title, description, date, time, location, category, organizer, createdBy]
     );
     res.status(201).json({ success: true, event: result.rows[0] });
   } catch (error) {
@@ -49,27 +50,47 @@ exports.createEvent = async (req, res) => {
   }
 };
 
+// PUT update event
+exports.updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    const { title, description, date, time, location, category, organizer } = req.body;
+
+    const eventResult = await pool.query('SELECT created_by FROM events WHERE id = $1', [id]);
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+    if (eventResult.rows[0].created_by !== userId) {
+      return res.status(403).json({ success: false, error: 'Not authorised to edit this event' });
+    }
+
+    const result = await pool.query(
+      'UPDATE events SET title=$1, description=$2, date=$3, time=$4, location=$5, category=$6, organizer=$7 WHERE id=$8 RETURNING *',
+      [title, description, date, time, location, category, organizer, id]
+    );
+    res.json({ success: true, event: result.rows[0] });
+  } catch (error) {
+    console.error('Update event error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update event' });
+  }
+};
+
 // DELETE event
 exports.deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Delete event request for ID:', id);
+    const userId = req.userId;
 
-    // Check if event exists
-    const eventResult = await pool.query(
-      'SELECT id FROM events WHERE id = $1',
-      [id]
-    );
-
+    const eventResult = await pool.query('SELECT created_by FROM events WHERE id = $1', [id]);
     if (eventResult.rows.length === 0) {
-      console.log('Event not found:', id);
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
+    if (eventResult.rows[0].created_by !== userId) {
+      return res.status(403).json({ success: false, error: 'Not authorised to delete this event' });
+    }
 
-    // Delete the event (cascades will delete attendees and reminders)
-    const deleteResult = await pool.query('DELETE FROM events WHERE id = $1', [id]);
-    console.log('Event deleted:', id, 'Rows deleted:', deleteResult.rowCount);
-
+    await pool.query('DELETE FROM events WHERE id = $1', [id]);
     res.status(200).json({ success: true, message: 'Event deleted successfully' });
   } catch (error) {
     console.error('Delete event error:', error);

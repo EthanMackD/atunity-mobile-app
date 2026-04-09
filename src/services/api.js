@@ -1,17 +1,4 @@
-import Constants from 'expo-constants';
-
-const getApiUrl = () => {
-  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
-  if (debuggerHost) {
-    const ip = debuggerHost.split(':')[0];
-    return `http://${ip}:5000/api`;
-  }
-  return 'http://localhost:5000/api';
-};
-
-const API_URL = getApiUrl();
-// If you need to target a fixed IP (e.g. for local device testing), uncomment below:
-// const API_URL = 'http://192.168.1.143:5000/api';
+const API_URL = 'http://192.168.1.143:5000/api';
 
 export const api = {
   async register(email, password, name, course, year) {
@@ -74,6 +61,24 @@ export const api = {
   },
   async disableReminder(eventId, token) {
     const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    return response.json();
+  },
+  async updateEvent(eventId, eventData, token) {
+    const response = await fetch(`${API_URL}/events/${eventId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(eventData),
+    });
+    return response.json();
+  },
+  async deleteEvent(eventId, token) {
+    const response = await fetch(`${API_URL}/events/${eventId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` },
     });
