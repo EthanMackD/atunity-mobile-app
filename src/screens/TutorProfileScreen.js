@@ -36,6 +36,7 @@ export default function TutorProfileScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [price, setPrice] = useState('');
 
   useEffect(() => {
     loadTutorProfile();
@@ -64,6 +65,7 @@ export default function TutorProfileScreen({ navigation }) {
         setAvailability(data.user.availability || '');
         setExperience(data.user.experience || '');
         setDescription(data.user.description || '');
+        setPrice(data.user.price ? data.user.price.toString() : '');
       } else {
         Alert.alert('Error', data.error || 'Failed to load tutor profile');
       }
@@ -75,7 +77,7 @@ export default function TutorProfileScreen({ navigation }) {
   };
 
   const handleSave = async () => {
-    if (!subjects || !availability || !experience || !description) {
+    if (!subjects || !availability || !experience || !description || !price) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
@@ -95,7 +97,8 @@ export default function TutorProfileScreen({ navigation }) {
           subjects,
           availability,
           experience,
-          description
+          description,
+          price: parseFloat(price),
         }),
       });
 
@@ -162,6 +165,14 @@ export default function TutorProfileScreen({ navigation }) {
         value={description}
         onChangeText={setDescription}
         multiline
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Price per session (€)"
+        value={price}
+        onChangeText={setPrice}
+        keyboardType="numeric"
       />
 
       <TouchableOpacity style={styles.button} onPress={handleSave} disabled={saving}>

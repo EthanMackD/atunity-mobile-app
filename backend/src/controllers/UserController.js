@@ -2,15 +2,18 @@ const pool = require('../config/database');
 
 exports.updateTutorProfile = async (req, res) => {
   try {
-    const { subjects, availability, experience, description } = req.body;
+    const { subjects, availability, experience, description, price } = req.body;
 
-    if (!subjects || !availability || !experience || !description) {
+    if (!subjects || !availability || !experience || !description || !price) {
       return res.status(400).json({ error: 'All tutor profile fields are required' });
     }
 
     const result = await pool.query(
-      'UPDATE users SET subjects = $1, availability = $2, experience = $3, description = $4 WHERE id = $5 RETURNING id, email, name, course, year, role, subjects, availability, experience, description, created_at',
-      [subjects, availability, experience, description, req.userId]
+      `UPDATE users 
+       SET subjects = $1, availability = $2, experience = $3, description = $4, price = $5 
+       WHERE id = $6 
+       RETURNING id, email, name, course, year, role, subjects, availability, experience, description, price, created_at`,
+      [subjects, availability, experience, description, price, req.userId]
     );
 
     if (result.rows.length === 0) {
@@ -27,7 +30,7 @@ exports.updateTutorProfile = async (req, res) => {
 exports.getAllTutors = async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, course, year, subjects, availability, experience, description FROM users WHERE role = 'tutor' ORDER BY name ASC"
+      "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' ORDER BY name ASC"
     );
 
     res.json({ success: true, tutors: result.rows });
@@ -42,7 +45,7 @@ exports.getTutorById = async (req, res) => {
     const { id } = req.params;
 
     const result = await pool.query(
-      "SELECT id, name, email, course, year, role, subjects, availability, experience, description, created_at FROM users WHERE id = $1 AND role = 'tutor'",
+      "SELECT id, name, email, course, year, role, subjects, availability, experience, description, price, created_at FROM users WHERE id = $1 AND role = 'tutor'",
       [id]
     );
 
