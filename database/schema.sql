@@ -10,6 +10,7 @@ CREATE TABLE users (
   course VARCHAR(255),
   year INTEGER,
   profile_photo VARCHAR(500),
+  preferred_meeting_location VARCHAR(20) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
