@@ -62,7 +62,8 @@ exports.getAttendees = async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      'SELECT users.name FROM users JOIN event_attendees ON users.id = event_attendees.user_id WHERE event_attendees.event_id = $1',
+      'SELECT u.id, u.name, u.course, u.preferred_meeting_location FROM event_attendees ea ' +
+      'JOIN users u ON ea.user_id = u.id WHERE ea.event_id = $1',
       [id]
     );
     res.json({ success: true, attendees: result.rows });
