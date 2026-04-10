@@ -54,7 +54,7 @@ exports.login = async (req, res) => {
     }
 
     const result = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, name, course, year, preferred_meeting_location, created_at FROM users WHERE email = $1',
       [email]
     );
 
@@ -87,7 +87,7 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, name, course, year, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, course, year, preferred_meeting_location, created_at FROM users WHERE id = $1',
       [req.userId]
     );
 
@@ -99,5 +99,26 @@ exports.getMe = async (req, res) => {
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user' });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { preferred_meeting_location } = req.body;
+    const allowed = ['online', 'on_campus'];
+
+    if (!allowed.includes(preferred_meeting_location)) {
+      return res.status(400).json({ error: 'Invalid meeting location. Must be online or on_campus' });
+    }
+
+    const result = await pool.query(
+      'UPDATE users SET preferred_meeting_location = $1 WHERE id = $2 RETURNING id, email, name, course, year, preferred_meeting_location, created_at',
+      [preferred_meeting_location, req.userId]
+    );
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 };
