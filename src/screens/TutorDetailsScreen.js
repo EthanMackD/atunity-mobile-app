@@ -109,6 +109,14 @@ export default function TutorDetailsScreen({ route, navigation }) {
         </View>
 
         <View style={styles.section}>
+        <Text style={styles.label}>Completed Sessions</Text>
+        <Text style={styles.sessionsValue}>
+          {parseInt(tutor.completed_sessions) || 0} sessions completed
+        </Text>
+      </View>
+
+
+        <View style={styles.section}>
           <Text style={styles.label}>Description</Text>
           <Text style={styles.value}>{tutor.description || 'Not set'}</Text>
         </View>
@@ -198,4 +206,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  sessionsValue: {
+  fontSize: 16,
+  color: '#1D4ED8',
+  fontWeight: '600',
+},
 });
