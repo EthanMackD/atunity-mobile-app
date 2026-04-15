@@ -29,31 +29,45 @@ exports.updateTutorProfile = async (req, res) => {
 
 exports.getAllTutors = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' ORDER BY name ASC"
-    );
-
-    res.json({ success: true, tutors: result.rows });
-  } catch (error) {
-    console.error('Get tutors error:', error);
-    res.status(500).json({ error: 'Failed to fetch tutors' });
-  }
+  const result = await pool.query(
+    `SELECT u.id, u.name, u.course, u.year, u.subjects,
+            u.availability, u.experience, u.description, u.price,
+            COUNT(b.id) FILTER (WHERE b.status = 'completed') AS completed_sessions
+     FROM users u
+     LEFT JOIN bookings b ON b.tutor_id = u.id
+     WHERE u.role = 'tutor'
+     GROUP BY u.id, u.name, u.course, u.year, u.subjects,
+              u.availability, u.experience, u.description, u.price
+     ORDER BY u.name ASC`
+  );
+ 
+  return res.json({ success: true, tutors: result.rows });
+} catch (error) {
+  console.error('Get tutors error:', error);
+  res.status(500).json({ error: 'Failed to fetch tutors' });
+}
 };
 
 exports.getTutorById = async (req, res) => {
   try {
-    const { id } = req.params;
-
     const result = await pool.query(
-      "SELECT id, name, email, course, year, role, subjects, availability, experience, description, price, created_at FROM users WHERE id = $1 AND role = 'tutor'",
-      [id]
-    );
+  `SELECT u.id, u.name, u.course, u.subjects,
+          u.availability, u.experience, u.description, u.price,
+          COUNT(b.id) FILTER (WHERE b.status = 'completed') AS completed_sessions
+   FROM users u
+   LEFT JOIN bookings b ON b.tutor_id = u.id
+   WHERE u.id = $1 AND u.role = 'tutor'
+   GROUP BY u.id, u.name, u.course, u.subjects,
+            u.availability, u.experience, u.description, u.price`,
+  [id]
+);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Tutor not found' });
-    }
+if (result.rows.length === 0) {
+  return res.status(404).json({ success: false, message: 'Tutor not found' });
+}
 
-    res.json({ success: true, tutor: result.rows[0] });
+return res.json({ success: true, tutor: result.rows[0] });
+
   } catch (error) {
     console.error('Get tutor by id error:', error);
     res.status(500).json({ error: 'Failed to fetch tutor' });
