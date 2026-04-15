@@ -133,6 +133,11 @@ export default function TutorsListScreen({ navigation }) {
             <Text style={styles.subjects}>
               {tutor.subjects || 'No subjects added yet'}
             </Text>
+            <View style={styles.sessionsRow}>
+            <Text style={styles.sessionsText}>
+              {parseInt(tutor.completed_sessions) || 0} sessions completed
+            </Text>
+          </View>
           </TouchableOpacity>
         ))
       )}
@@ -199,4 +204,17 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 40,
   },
+  sessionsRow: {
+  marginTop: 8,
+  alignSelf: 'flex-start',
+  backgroundColor: '#DBEAFE',
+  borderRadius: 8,
+  paddingHorizontal: 10,
+  paddingVertical: 3,
+},
+sessionsText: {
+  fontSize: 13,
+  color: '#1D4ED8',
+  fontWeight: '600',
+},
 });
