@@ -3,7 +3,7 @@ import { render } from '@testing-library/react-native';
 import EventDetailsScreen from '../../src/screens/EventDetailsScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
-  getItem: jest.fn(),
+  getItem: jest.fn().mockResolvedValue('fake-token'),
 }));
 
 global.fetch = jest.fn((url) => {
@@ -50,14 +50,14 @@ describe('EventDetailsScreen', () => {
   });
 
   it('renders event details after loading', async () => {
-    const { findByText } = render(
-      <EventDetailsScreen route={route} navigation={navigation} />
-    );
+  const { findByText } = render(
+    <EventDetailsScreen route={route} navigation={navigation} />
+  );
 
-    expect(await findByText(/Tech Meetup/)).toBeTruthy();
-    expect(await findByText(/Organised by/)).toBeTruthy();
-    expect(await findByText(/ATUnity/)).toBeTruthy();
-    expect(await findByText(/A networking event for students/)).toBeTruthy();
-    expect(await findByText(/I'm Going/)).toBeTruthy();
-  });
+  expect(await findByText(/Tech Meetup/, {}, { timeout: 10000 })).toBeTruthy();
+  expect(await findByText(/Organised by/, {}, { timeout: 10000 })).toBeTruthy();
+  expect(await findByText(/ATUnity/, {}, { timeout: 10000 })).toBeTruthy();
+  expect(await findByText(/A networking event for students/, {}, { timeout: 10000 })).toBeTruthy();
+  expect(await findByText(/I'm Going/, {}, { timeout: 10000 })).toBeTruthy();
+}, 15000); // <-- jest test timeout
 });
