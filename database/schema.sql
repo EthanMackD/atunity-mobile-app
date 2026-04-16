@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS event_reminders CASCADE;
 DROP TABLE IF EXISTS bookmarks CASCADE;
 DROP TABLE IF EXISTS event_attendees CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
@@ -47,8 +48,22 @@ CREATE TABLE bookmarks (
   UNIQUE(user_id, event_id)
 );
 
+CREATE TABLE event_reminders (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  reminder_enabled BOOLEAN DEFAULT TRUE,
+  reminder_minutes_before INTEGER DEFAULT 60,
+  notification_sent BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(event_id, user_id)
+);
+
 CREATE INDEX idx_events_date ON events(date);
 CREATE INDEX idx_events_category ON events(category);
 CREATE INDEX idx_event_attendees_event_id ON event_attendees(event_id);
 CREATE INDEX idx_event_attendees_user_id ON event_attendees(user_id);
 CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_event_reminders_enabled ON event_reminders(reminder_enabled, notification_sent);
+CREATE INDEX idx_event_reminders_event_user ON event_reminders(event_id, user_id);
