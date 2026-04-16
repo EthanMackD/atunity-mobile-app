@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const getApiUrl = () => {
   if (Platform.OS === 'web') {
@@ -51,6 +52,14 @@ export default function ProfileScreen({ navigation }) {
               Tutors
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EditProfile')}
+            style={{ marginRight: 16 }}
+            accessibilityLabel="Edit Profile"
+          >
+            <Ionicons name="pencil" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       ),
     });
@@ -86,7 +95,6 @@ export default function ProfileScreen({ navigation }) {
           await AsyncStorage.setItem('user', JSON.stringify(data.user));
         }
       }
-
     } catch (error) {
       console.log('Failed to load profile:', error);
     } finally {
