@@ -42,4 +42,49 @@ export const api = {
     });
     return response.json();
   },
+
+  async getAllEvents() {
+    const response = await fetch(`${API_URL}/events`);
+    return response.json();
+  },
+
+  async getEventById(eventId) {
+    const response = await fetch(`${API_URL}/events/${eventId}`);
+    return response.json();
+  },
+
+  async attendEvent(eventId, token) {
+    const response = await fetch(`${API_URL}/events/${eventId}/attend`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
+  },
+
+  async getReminderStatus(eventId, token) {
+    const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
+  },
+
+  async toggleReminder(eventId, reminderEnabled, reminderMinutesBefore = 60, token) {
+    const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ reminderEnabled, reminderMinutesBefore }),
+    });
+    return response.json();
+  },
+
+  async disableReminder(eventId, token) {
+    const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.json();
+  },
 };

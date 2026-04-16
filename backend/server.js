@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { checkAndSendReminders } = require('./src/services/notificationScheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,5 +44,14 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// Start notification scheduler - runs every 5 minutes
+const REMINDER_CHECK_INTERVAL = 5 * 60 * 1000;
+setInterval(() => {
+  checkAndSendReminders();
+}, REMINDER_CHECK_INTERVAL);
+
+// Run check on startup
+checkAndSendReminders();
 
 module.exports = app;

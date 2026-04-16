@@ -189,7 +189,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-{user?.role === 'tutor' && (
+      {user?.role === 'tutor' && (
         <TouchableOpacity
           style={styles.tutorButton}
           onPress={() => navigation.navigate('TutorDetails', { tutorId: user.id })}
@@ -197,6 +197,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.tutorText}>View My Tutor Profile</Text>
         </TouchableOpacity>
       )}
+
       {user?.role === 'tutor' && (
         <TouchableOpacity
           style={styles.tutorButton}
@@ -205,6 +206,7 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.tutorText}>Create / Edit Tutor Profile</Text>
         </TouchableOpacity>
       )}
+
       <TouchableOpacity
         style={styles.historyButton}
         onPress={() => navigation.navigate('History')}
@@ -213,11 +215,11 @@ export default function ProfileScreen({ navigation }) {
       </TouchableOpacity>
 
       <TouchableOpacity
-          style={styles.changePasswordButton}
-          onPress={() => navigation.navigate('ChangePassword')}
-        >
-          <Text style={styles.changePasswordText}>Change Password</Text>
-        </TouchableOpacity>
+        style={styles.changePasswordButton}
+        onPress={() => navigation.navigate('ChangePassword')}
+      >
+        <Text style={styles.changePasswordText}>Change Password</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
@@ -227,27 +229,10 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-
-  contentContainer: {
-    padding: 20,
-    paddingBottom: 30
-  },
-
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-
-  avatarContainer: {
-    alignItems: 'center',
-    marginVertical: 24
-  },
-
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
+  contentContainer: { padding: 20, paddingBottom: 30 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  avatarContainer: { alignItems: 'center', marginVertical: 24 },
   avatar: {
     width: 80,
     height: 80,
@@ -256,13 +241,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-
-  avatarText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF'
-  },
-
+  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#FFFFFF' },
   infoCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -274,16 +253,8 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3
   },
-
-  infoRow: {
-    paddingVertical: 12
-  },
-
-  divider: {
-    height: 1,
-    backgroundColor: '#E2E8F0'
-  },
-
+  infoRow: { paddingVertical: 12 },
+  divider: { height: 1, backgroundColor: '#E2E8F0' },
   label: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -291,12 +262,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 4
   },
-
-  value: {
-    fontSize: 16,
-    color: '#1E293B'
-  },
-
+  value: { fontSize: 16, color: '#1E293B' },
   tutorButton: {
     backgroundColor: '#065A82',
     padding: 16,
@@ -304,27 +270,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15
   },
-
-  tutorText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold'
-  },
-
-  logoutButton: {
-    backgroundColor: '#EF4444',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center'
-  },
-
-  logoutText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold'
-  },
-
-changePasswordButton: {
+  tutorText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  changePasswordButton: {
     backgroundColor: '#065A82',
     padding: 16,
     borderRadius: 12,
@@ -348,4 +295,11 @@ changePasswordButton: {
     fontSize: 16,
     fontWeight: 'bold',
   },
+  logoutButton: {
+    backgroundColor: '#EF4444',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center'
+  },
+  logoutText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }
 });
