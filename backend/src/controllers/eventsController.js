@@ -55,15 +55,31 @@ exports.getEventById = async (req, res) => {
 // POST create event
 exports.createEvent = async (req, res) => {
   try {
-    const { title, description, date, location, category, organizer } = req.body;
+    const { title, description, date, time, location, category } = req.body;
+
+    if (!title || !description || !date || !time || !location || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, description, date, time, location, and category are required'
+      });
+    }
+
     const result = await pool.query(
-      'INSERT INTO events (title, description, date, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, description, date, location, category, organizer]
+      'INSERT INTO events (title, description, date, time, location, category) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [title, description, date, time, location, category]
     );
-    res.status(201).json({ success: true, event: result.rows[0] });
+
+    res.status(201).json({
+      success: true,
+      message: 'Event created successfully',
+      event: result.rows[0]
+    });
   } catch (error) {
-    console.error('Create event error:', error);
-    res.status(500).json({ error: 'Failed to create event' });
+    console.error('Create event error full:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 

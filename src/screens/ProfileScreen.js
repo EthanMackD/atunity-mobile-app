@@ -5,15 +5,56 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert
+  Alert,
+  ScrollView
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 
-const API_URL = 'http://localhost:3000/api';
+const getApiUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:3000/api';
+  }
+  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:3000/api`;
+  }
+  return 'http://localhost:3000/api';
+};
+
+const API_URL = getApiUrl();
 
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EventsList')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+              Events
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TutorsList')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>
+              Tutors
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ),
+    });
+  }, [navigation]);
 
   useEffect(() => {
     loadUserProfile();
@@ -42,6 +83,7 @@ export default function ProfileScreen({ navigation }) {
 
         if (data.success) {
           setUser(data.user);
+          await AsyncStorage.setItem('user', JSON.stringify(data.user));
         }
       }
 
@@ -80,8 +122,7 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
-
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
@@ -91,7 +132,6 @@ export default function ProfileScreen({ navigation }) {
       </View>
 
       <View style={styles.infoCard}>
-
         <View style={styles.infoRow}>
           <Text style={styles.label}>Name</Text>
           <Text style={styles.value}>{user?.name || 'Not set'}</Text>
@@ -102,6 +142,15 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.infoRow}>
           <Text style={styles.label}>Email</Text>
           <Text style={styles.value}>{user?.email || 'Not set'}</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Role</Text>
+          <Text style={styles.value}>
+            {user?.role ? user.role.toUpperCase() : 'Not set'}
+          </Text>
         </View>
 
         <View style={styles.divider} />
@@ -130,14 +179,37 @@ export default function ProfileScreen({ navigation }) {
               : 'Unknown'}
           </Text>
         </View>
-
       </View>
+
+      {user?.role === 'tutor' && (
+        <TouchableOpacity
+          style={styles.tutorButton}
+          onPress={() => navigation.navigate('TutorDetails', { tutorId: user.id })}
+        >
+          <Text style={styles.tutorText}>View My Tutor Profile</Text>
+        </TouchableOpacity>
+      )}
+
+      {user?.role === 'tutor' && (
+        <TouchableOpacity
+          style={styles.tutorButton}
+          onPress={() => navigation.navigate('TutorProfile')}
+        >
+          <Text style={styles.tutorText}>Create / Edit Tutor Profile</Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity
+          style={styles.changePasswordButton}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Text style={styles.changePasswordText}>Change Password</Text>
+        </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
-
-    </View>
+    </ScrollView>
   );
 }
 
@@ -145,7 +217,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    padding: 20
+  },
+
+  contentContainer: {
+    padding: 20,
+    paddingBottom: 30
   },
 
   centered: {
@@ -208,6 +284,20 @@ const styles = StyleSheet.create({
     color: '#1E293B'
   },
 
+  tutorButton: {
+    backgroundColor: '#065A82',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 15
+  },
+
+  tutorText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold'
+  },
+
   logoutButton: {
     backgroundColor: '#EF4444',
     padding: 16,
@@ -219,5 +309,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold'
-  }
+  },
+
+  changePasswordButton: {
+  backgroundColor: '#065A82',
+  padding: 16,
+  borderRadius: 12,
+  alignItems: 'center',
+  marginBottom: 15
+},
+
+changePasswordText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: 'bold'
+}
 });
