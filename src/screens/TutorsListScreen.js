@@ -6,7 +6,8 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-  RefreshControl
+  RefreshControl,
+  TextInput
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -33,38 +34,39 @@ export default function TutorsListScreen({ navigation }) {
   const [tutors, setTutors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
-        headerRight: () => (
+      headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity
+          <TouchableOpacity
             onPress={() => navigation.navigate('EventsList')}
             style={{ marginRight: 16 }}
-            >
+          >
             <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
-                Events
+              Events
             </Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
 
-            <TouchableOpacity
+          <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={{ marginRight: 16 }}
-            >
+          >
             <Text style={{ color: '#FFFFFF', fontSize: 16 }}>
-                Profile
+              Profile
             </Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
         </View>
-        ),
+      ),
     });
-    }, [navigation]);
+  }, [navigation]);
 
-  const loadTutors = async () => {
+  const loadTutors = async (query = '') => {
     try {
       const token = await AsyncStorage.getItem('token');
-
-      const response = await fetch(`${API_URL}/users/tutors`, {
+      const searchParam = query ? `?search=${encodeURIComponent(query)}` : '';
+      const response = await fetch(`${API_URL}/users/tutors${searchParam}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -89,13 +91,18 @@ export default function TutorsListScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      loadTutors();
-    }, [])
+      loadTutors(searchQuery);
+    }, [searchQuery])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadTutors();
+    loadTutors(searchQuery);
+  };
+
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    loadTutors(text);
   };
 
   if (loading) {
@@ -117,6 +124,14 @@ export default function TutorsListScreen({ navigation }) {
       <Text style={styles.title}>Tutors</Text>
       <Text style={styles.subtitle}>Find tutors and view the subjects they offer</Text>
 
+      <TextInput
+        style={styles.searchInput}
+        placeholder="Search by name, subject, or course..."
+        value={searchQuery}
+        onChangeText={handleSearch}
+        autoCapitalize="none"
+      />
+
       {tutors.length === 0 ? (
         <Text style={styles.emptyText}>No tutors found</Text>
       ) : (
@@ -133,11 +148,12 @@ export default function TutorsListScreen({ navigation }) {
             <Text style={styles.subjects}>
               {tutor.subjects || 'No subjects added yet'}
             </Text>
+
             <View style={styles.sessionsRow}>
-            <Text style={styles.sessionsText}>
-              {parseInt(tutor.completed_sessions) || 0} sessions completed
-            </Text>
-          </View>
+              <Text style={styles.sessionsText}>
+                {parseInt(tutor.completed_sessions) || 0} sessions completed
+              </Text>
+            </View>
           </TouchableOpacity>
         ))
       )}
@@ -172,6 +188,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 25,
   },
+  searchInput: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -198,23 +228,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#065A82',
   },
+  sessionsRow: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#DBEAFE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  sessionsText: {
+    fontSize: 13,
+    color: '#1D4ED8',
+    fontWeight: '600',
+  },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
     color: '#64748B',
     marginTop: 40,
   },
-  sessionsRow: {
-  marginTop: 8,
-  alignSelf: 'flex-start',
-  backgroundColor: '#DBEAFE',
-  borderRadius: 8,
-  paddingHorizontal: 10,
-  paddingVertical: 3,
-},
-sessionsText: {
-  fontSize: 13,
-  color: '#1D4ED8',
-  fontWeight: '600',
-},
 });

@@ -9,7 +9,6 @@ const getApiUrl = () => {
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
-    console.log('Auto-detected API URL:', `http://${ip}:3000/api`);
     return `http://${ip}:3000/api`;
   }
 

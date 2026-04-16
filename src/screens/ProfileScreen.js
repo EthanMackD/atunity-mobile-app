@@ -11,6 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const getApiUrl = () => {
   if (Platform.OS === 'web') {
@@ -51,6 +52,14 @@ export default function ProfileScreen({ navigation }) {
               Tutors
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EditProfile')}
+            style={{ marginRight: 16 }}
+            accessibilityLabel="Edit Profile"
+          >
+            <Ionicons name="pencil" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       ),
     });
@@ -86,7 +95,6 @@ export default function ProfileScreen({ navigation }) {
           await AsyncStorage.setItem('user', JSON.stringify(data.user));
         }
       }
-
     } catch (error) {
       console.log('Failed to load profile:', error);
     } finally {
@@ -181,7 +189,7 @@ export default function ProfileScreen({ navigation }) {
         </View>
       </View>
 
-      {user?.role === 'tutor' && (
+{user?.role === 'tutor' && (
         <TouchableOpacity
           style={styles.tutorButton}
           onPress={() => navigation.navigate('TutorDetails', { tutorId: user.id })}
@@ -189,7 +197,6 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.tutorText}>View My Tutor Profile</Text>
         </TouchableOpacity>
       )}
-
       {user?.role === 'tutor' && (
         <TouchableOpacity
           style={styles.tutorButton}
@@ -198,6 +205,19 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.tutorText}>Create / Edit Tutor Profile</Text>
         </TouchableOpacity>
       )}
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate('History')}
+      >
+        <Text style={styles.historyButtonText}>My Event History</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+          style={styles.changePasswordButton}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Text style={styles.changePasswordText}>Change Password</Text>
+        </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
@@ -302,5 +322,30 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold'
-  }
+  },
+
+changePasswordButton: {
+    backgroundColor: '#065A82',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  changePasswordText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  historyButton: {
+    backgroundColor: '#065A82',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  historyButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

@@ -1,5 +1,32 @@
 const pool = require('../config/database');
 
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, course, year } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const result = await pool.query(
+      `UPDATE users
+       SET name = $1, course = $2, year = $3
+       WHERE id = $4
+       RETURNING id, email, name, course, year, role, created_at`,
+      [name, course || null, year || null, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
 exports.updateTutorProfile = async (req, res) => {
   try {
     const { subjects, availability, experience, description, price } = req.body;
@@ -29,9 +56,34 @@ exports.updateTutorProfile = async (req, res) => {
 
 exports.getAllTutors = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' ORDER BY name ASC"
-    );
+    const { search } = req.query;
+    let query;
+    let params = [];
+
+    if (search) {
+      query = `
+        SELECT id, name, course, year, subjects, availability, experience, description, price, completed_sessions
+        FROM users
+        WHERE role = 'tutor'
+          AND (
+            LOWER(name) LIKE $1 OR
+            LOWER(subjects) LIKE $1 OR
+            LOWER(course) LIKE $1 OR
+            LOWER(description) LIKE $1
+          )
+        ORDER BY name ASC
+      `;
+      params = [`%${search.toLowerCase()}%`];
+    } else {
+      query = `
+        SELECT id, name, course, year, subjects, availability, experience, description, price, completed_sessions
+        FROM users
+        WHERE role = 'tutor'
+        ORDER BY name ASC
+      `;
+    }
+
+    const result = await pool.query(query, params);
     res.json({ success: true, tutors: result.rows });
   } catch (error) {
     console.error('Get tutors error:', error);
