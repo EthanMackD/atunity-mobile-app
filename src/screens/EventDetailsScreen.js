@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, Alert, Switch
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -26,14 +26,50 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [attendees, setAttendees] = useState([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-  const [reminderSet, setReminderSet] = useState(false);
+
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderMinutesBefore, setReminderMinutesBefore] = useState(60);
+  const [loadingReminder, setLoadingReminder] = useState(false);
+  const [userToken, setUserToken] = useState(null);
+  const [isEventPast, setIsEventPast] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
     checkRsvpStatus();
     checkBookmark();
-    checkReminder();
+    loadUserToken();
   }, []);
+
+  useEffect(() => {
+    if (event) {
+      checkIfEventPast();
+    }
+  }, [event]);
+
+  useEffect(() => {
+    if (userToken) {
+      fetchReminderStatus();
+    }
+  }, [userToken]);
+
+  const loadUserToken = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      setUserToken(token);
+    } catch (error) {
+      console.error('Failed to load token:', error);
+    }
+  };
+
+  const checkIfEventPast = () => {
+    if (!event) return;
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    const isPast = eventDate < today;
+    setIsEventPast(isPast);
+  };
 
   const fetchEventDetails = async () => {
     try {
@@ -73,6 +109,61 @@ export default function EventDetailsScreen({ route, navigation }) {
     }
   };
 
+  const fetchReminderStatus = async () => {
+    if (!userToken) return;
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+        headers: { Authorization: `Bearer ${userToken}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReminderEnabled(data.reminderEnabled);
+        setReminderMinutesBefore(data.reminderMinutesBefore);
+      }
+    } catch (error) {
+      console.error('Failed to fetch reminder status:', error);
+    }
+  };
+
+  const handleToggleReminder = async (value) => {
+    if (!userToken) {
+      Alert.alert('Error', 'Please log in to set reminders');
+      return;
+    }
+
+    setLoadingReminder(true);
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({
+          reminderEnabled: value,
+          reminderMinutesBefore,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReminderEnabled(value);
+        Alert.alert(
+          'Success',
+          value
+            ? `Reminder set for ${reminderMinutesBefore} minutes before the event`
+            : 'Reminder disabled'
+        );
+      } else {
+        Alert.alert('Error', 'Failed to update reminder');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update reminder');
+      console.error('Reminder toggle error:', error);
+    } finally {
+      setLoadingReminder(false);
+    }
+  };
+
   const handleAttend = async () => {
     const action = attending ? 'cancel this event' : 'go to this event';
     Alert.alert(
@@ -92,7 +183,7 @@ export default function EventDetailsScreen({ route, navigation }) {
               }
               const response = await fetch(`${API_URL}/events/${eventId}/attend`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` },
               });
               const data = await response.json();
               if (data.success) {
@@ -124,7 +215,7 @@ export default function EventDetailsScreen({ route, navigation }) {
       const token = await AsyncStorage.getItem('token');
       if (!token) return;
       const response = await fetch(`${API_URL.replace('/api', '')}/api/bookmarks/${eventId}/check`, {
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (data.success) setBookmarked(data.bookmarked);
@@ -142,50 +233,12 @@ export default function EventDetailsScreen({ route, navigation }) {
       }
       const response = await fetch(`${API_URL.replace('/api', '')}/api/bookmarks/${eventId}/toggle`, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
       if (data.success) setBookmarked(data.bookmarked);
     } catch (error) {
       Alert.alert('Error', 'Failed to bookmark event');
-    }
-  };
-
-  const checkReminder = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) return;
-      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) setReminderSet(data.reminderEnabled);
-    } catch (error) {
-      console.error('Check reminder error:', error);
-    }
-  };
-
-  const toggleReminder = async () => {
-    try {
-      const token = await AsyncStorage.getItem('token');
-      if (!token) {
-        Alert.alert('Error', 'Please log in to set reminders');
-        return;
-      }
-      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reminderEnabled: !reminderSet }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setReminderSet(data.reminder.reminderEnabled);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update reminder');
     }
   };
 
@@ -236,15 +289,19 @@ export default function EventDetailsScreen({ route, navigation }) {
           </Text>
 
           <TouchableOpacity
-            style={[styles.attendButton, attending && styles.cancelButton]}
+            style={[
+              styles.attendButton,
+              attending && styles.cancelButton,
+              isEventPast && styles.disabledButton
+            ]}
             onPress={handleAttend}
-            disabled={rsvpLoading}
+            disabled={rsvpLoading || isEventPast}
           >
             {rsvpLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.attendButtonText}>
-                {attending ? 'Cancel RSVP' : "I'm Going"}
+              <Text style={[styles.attendButtonText, isEventPast && styles.disabledText]}>
+                {isEventPast ? 'Event Ended' : attending ? 'Cancel RSVP' : "I'm Going"}
               </Text>
             )}
           </TouchableOpacity>
@@ -257,16 +314,28 @@ export default function EventDetailsScreen({ route, navigation }) {
               {bookmarked ? 'Bookmarked' : 'Bookmark'}
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.reminderButton, reminderSet && styles.reminderSetButton]}
-            onPress={toggleReminder}
-          >
-            <Text style={styles.reminderButtonText}>
-              {reminderSet ? 'Reminder Set' : 'Set Reminder'}
-            </Text>
-          </TouchableOpacity>
         </View>
+
+        <View style={styles.reminderCard}>
+          <View style={styles.reminderHeader}>
+            <View>
+              <Text style={styles.reminderTitle}>Event Reminder</Text>
+              <Text style={styles.reminderDescription}>
+                {reminderEnabled
+                  ? `Get notified ${reminderMinutesBefore} minutes before`
+                  : 'Enable to receive a reminder'}
+              </Text>
+            </View>
+            <Switch
+              value={reminderEnabled}
+              onValueChange={handleToggleReminder}
+              disabled={loadingReminder || isEventPast}
+              trackColor={{ false: '#CBD5E1', true: '#10B981' }}
+              thumbColor={reminderEnabled ? '#10B981' : '#F8FAFC'}
+            />
+          </View>
+        </View>
+
         {attendees.length > 0 && (
           <View style={styles.attendeesSection}>
             <Text style={styles.sectionTitle}>Who's Going</Text>
@@ -299,9 +368,15 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: 'bold', color: '#1E293B', marginBottom: 4 },
   organiser: { fontSize: 15, color: '#64748B', marginBottom: 20 },
   infoCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginBottom: 20,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1, shadowRadius: 4, elevation: 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   infoLabel: { fontSize: 12, fontWeight: 'bold', color: '#065A82', textTransform: 'uppercase', marginTop: 8 },
   infoValue: { fontSize: 16, color: '#1E293B', marginBottom: 4 },
@@ -313,39 +388,66 @@ const styles = StyleSheet.create({
   cancelButton: { backgroundColor: '#EF4444' },
   attendButtonText: { color: '#FFFFFF', fontSize: 18, fontWeight: 'bold' },
   bookmarkButton: {
-    backgroundColor: '#E2E8F0', paddingVertical: 14, paddingHorizontal: 40,
-    borderRadius: 25, marginTop: 10,
-  },
-  bookmarkedButton: { backgroundColor: '#F59E0B' },
-  bookmarkButtonText: { fontSize: 18, fontWeight: 'bold', color: '#475569', textAlign: 'center' },
-  attendeesSection: { marginTop: 24, width: '100%' },
-  attendeeRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF',
-    padding: 12, borderRadius: 8, marginBottom: 8,
-  },
-  attendeeAvatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: '#065A82',
-    justifyContent: 'center', alignItems: 'center', marginRight: 12,
-  },
-  attendeeAvatarText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
-  attendeeName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  attendeeCourse: { fontSize: 13, color: '#64748B' 
-
-  },
-  reminderButton: {
     backgroundColor: '#E2E8F0',
     paddingVertical: 14,
     paddingHorizontal: 40,
     borderRadius: 25,
     marginTop: 10,
   },
-  reminderSetButton: {
-    backgroundColor: '#3B82F6',
+  bookmarkedButton: { backgroundColor: '#F59E0B' },
+  bookmarkButtonText: { fontSize: 18, fontWeight: 'bold', color: '#475569', textAlign: 'center' },
+  attendeesSection: { marginTop: 24, width: '100%' },
+  attendeeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
   },
-  reminderButtonText: {
+  attendeeAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#065A82',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  attendeeAvatarText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
+  attendeeName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
+  attendeeCourse: { fontSize: 13, color: '#64748B' },
+  reminderCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 40,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  reminderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  reminderTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#475569',
-    textAlign: 'center',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  reminderDescription: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  disabledButton: {
+    backgroundColor: '#CBD5E1',
+    opacity: 0.6,
+  },
+  disabledText: {
+    color: '#64748B',
   },
 });

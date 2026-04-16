@@ -12,6 +12,7 @@ import {
   ScrollView,
   Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
@@ -52,26 +53,35 @@ export default function EventsListScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortByDistance, setSortByDistance] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
+  const [bookmarks, setBookmarks] = useState([]);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
-onPress={() => navigation.navigate('TutorsList')}
+            onPress={() => navigation.navigate('Bookmarks')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>⭐ Saved</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TutorsList')}
             style={{ marginRight: 16 }}
           >
             <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
               Tutors
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => navigation.navigate('EventMap')}
             style={{ marginRight: 16 }}
           >
             <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Map</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={{ marginRight: 16 }}
@@ -82,6 +92,10 @@ onPress={() => navigation.navigate('TutorsList')}
       ),
     });
   }, [navigation]);
+
+  const getToken = async () => {
+    return await AsyncStorage.getItem('token');
+  };
 
   const fetchEvents = async (query = '') => {
     try {
@@ -100,19 +114,62 @@ onPress={() => navigation.navigate('TutorsList')}
     }
   };
 
+  const fetchBookmarks = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const response = await fetch(`${API_URL}/events/bookmarks`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      const ids = (data.events || []).map(e => e.id);
+      setBookmarks(ids);
+    } catch (error) {
+      console.error('Failed to fetch bookmarks:', error);
+    }
+  };
+
+  const toggleBookmark = async (eventId) => {
+    const token = await getToken();
+    if (!token) return;
+
+    const isBookmarked = bookmarks.includes(eventId);
+    const method = isBookmarked ? 'DELETE' : 'POST';
+
+    try {
+      const response = await fetch(`${API_URL}/events/${eventId}/bookmark`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        if (isBookmarked) {
+          setBookmarks(bookmarks.filter(id => id !== eventId));
+        } else {
+          setBookmarks([...bookmarks, eventId]);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle bookmark:', error);
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
+    fetchBookmarks();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       fetchEvents(searchQuery);
+      fetchBookmarks();
     }, [searchQuery])
   );
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchEvents(searchQuery);
+    fetchBookmarks();
   };
 
   const handleSearch = (text) => {
@@ -135,7 +192,6 @@ onPress={() => navigation.navigate('TutorsList')}
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
 
       const sorted = [...events].sort((a, b) => {
         const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
@@ -190,9 +246,16 @@ onPress={() => navigation.navigate('TutorsList')}
           </Text>
         </View>
 
-        <Text style={styles.attendeeCount}>
-          {item.attendee_count || 0} going
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={styles.attendeeCount}>
+            {item.attendee_count || 0} going
+          </Text>
+          <TouchableOpacity onPress={() => toggleBookmark(item.id)}>
+            <Text style={{ fontSize: 20 }}>
+              {bookmarks.includes(item.id) ? '⭐' : '☆'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.eventTitle}>{item.title}</Text>
@@ -261,22 +324,13 @@ onPress={() => navigation.navigate('TutorsList')}
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F8FAFC'
-  },
+  container: { flex: 1, backgroundColor: '#F8FAFC' },
   scrollView: {
     flex: 1,
     ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {})
   },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center'
-  },
-  list: {
-    padding: 16
-  },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  list: { padding: 16 },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -299,39 +353,13 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 12,
   },
-  categoryText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  attendeeCount: {
-    fontSize: 13,
-    color: '#64748B'
-  },
-  eventTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E293B',
-    marginBottom: 4,
-  },
-  eventInfo: {
-    fontSize: 14,
-    color: '#065A82',
-    marginBottom: 2
-  },
-  eventLocation: {
-    fontSize: 14,
-    color: '#64748B'
-  },
-  emptyText: {
-    textAlign: 'center',
-    fontSize: 16,
-    marginTop: 40,
-  },
-  searchContainer: {
-    padding: 16,
-    paddingBottom: 0,
-  },
+  categoryText: { color: '#FFFFFF', fontSize: 11, fontWeight: 'bold' },
+  attendeeCount: { fontSize: 13, color: '#64748B' },
+  eventTitle: { fontSize: 18, fontWeight: 'bold', color: '#1E293B', marginBottom: 4 },
+  eventInfo: { fontSize: 14, color: '#065A82', marginBottom: 2 },
+  eventLocation: { fontSize: 14, color: '#64748B' },
+  emptyText: { textAlign: 'center', fontSize: 16, marginTop: 40 },
+  searchContainer: { padding: 16, paddingBottom: 0 },
   searchInput: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
