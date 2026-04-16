@@ -1,5 +1,6 @@
 import * as Location from 'expo-location';
 import React, { useState, useEffect, useCallback } from 'react';
+import MapView, { Marker } from '../mocks/react-native-maps';
 import {
   View,
   Text,
@@ -37,12 +38,15 @@ const LOCATION_COORDS = {
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
@@ -51,27 +55,22 @@ export default function EventsListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('list');
   const [sortByDistance, setSortByDistance] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
-onPress={() => navigation.navigate('TutorsList')}
+            onPress={() => navigation.navigate('TutorsList')}
             style={{ marginRight: 16 }}
           >
             <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
               Tutors
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('EventMap')}
-            style={{ marginRight: 16 }}
-          >
-            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Map</Text>
-          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={{ marginRight: 16 }}
@@ -135,13 +134,25 @@ onPress={() => navigation.navigate('TutorsList')}
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
 
       const sorted = [...events].sort((a, b) => {
         const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
         const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
-        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
-        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
+
+        const distA = getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          coordsA.lat,
+          coordsA.lng
+        );
+
+        const distB = getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          coordsB.lat,
+          coordsB.lng
+        );
+
         return distA - distB;
       });
 
@@ -151,6 +162,35 @@ onPress={() => navigation.navigate('TutorsList')}
       Alert.alert('Error', 'Could not get your location');
     }
   };
+
+  const renderMapView = () => (
+    <MapView
+      style={styles.map}
+      initialRegion={{
+        latitude: 53.2707,
+        longitude: -9.0568,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }}
+    >
+      {events.map((item) => {
+        const coords = LOCATION_COORDS[item.location];
+        if (!coords) return null;
+
+        return (
+          <Marker
+            key={item.id.toString()}
+            coordinate={{ latitude: coords.lat, longitude: coords.lng }}
+            title={item.title}
+            description={item.location}
+            onCalloutPress={() =>
+              navigation.navigate('EventDetails', { eventId: item.id })
+            }
+          />
+        );
+      })}
+    </MapView>
+  );
 
   const getCategoryColor = (category) => {
     const safeCategory = category ? category.toLowerCase().trim() : '';
@@ -243,19 +283,43 @@ onPress={() => navigation.navigate('TutorsList')}
         </Text>
       </TouchableOpacity>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {events.length === 0 ? (
-          <Text style={styles.emptyText}>No events found</Text>
-        ) : (
-          events.map(renderEvent)
-        )}
-      </ScrollView>
+      <View style={styles.viewToggleContainer}>
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('list')}
+        >
+          <Text style={[styles.toggleButtonText, viewMode === 'list' && styles.toggleButtonTextActive]}>
+            List
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('map')}
+        >
+          <Text style={[styles.toggleButtonText, viewMode === 'map' && styles.toggleButtonTextActive]}>
+            Map
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {viewMode === 'map' ? (
+        renderMapView()
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {events.length === 0 ? (
+            <Text style={styles.emptyText}>No events found</Text>
+          ) : (
+            events.map(renderEvent)
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -377,6 +441,36 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   locationButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  map: {
+    flex: 1,
+    width: '100%',
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#065A82',
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  toggleButtonTextActive: {
     color: '#FFFFFF',
   },
 });
