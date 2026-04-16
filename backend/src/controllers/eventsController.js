@@ -3,7 +3,26 @@ const pool = require('../config/database');
 // GET all events
 exports.getAllEvents = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM events ORDER BY date ASC');
+    const { search } = req.query;
+    let query;
+    let params = [];
+
+    if (search) {
+      query =
+        'SELECT e.*, COUNT(ea.id) AS attendee_count FROM events e ' +
+        'LEFT JOIN event_attendees ea ON e.id = ea.event_id ' +
+        'WHERE LOWER(e.title) LIKE $1 OR LOWER(e.description) LIKE $1 ' +
+        'OR LOWER(e.location) LIKE $1 OR LOWER(e.organizer) LIKE $1 ' +
+        'GROUP BY e.id ORDER BY e.date ASC';
+      params = [`%${search.toLowerCase()}%`];
+    } else {
+      query =
+        'SELECT e.*, COUNT(ea.id) AS attendee_count FROM events e ' +
+        'LEFT JOIN event_attendees ea ON e.id = ea.event_id ' +
+        'GROUP BY e.id ORDER BY e.date ASC';
+    }
+
+    const result = await pool.query(query, params);
     res.json({ success: true, events: result.rows });
   } catch (error) {
     console.error('Get events error:', error);
@@ -21,11 +40,11 @@ exports.getEventById = async (req, res) => {
       'WHERE e.id = $1 GROUP BY e.id',
       [id]
     );
- 
+
     if (eventResult.rows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
- 
+
     res.json({ success: true, event: eventResult.rows[0] });
   } catch (error) {
     console.error('Get event error:', error);
@@ -33,19 +52,34 @@ exports.getEventById = async (req, res) => {
   }
 };
 
-
 // POST create event
 exports.createEvent = async (req, res) => {
   try {
     const { title, description, date, time, location, category, organizer } = req.body;
+
+    if (!title || !description || !date || !time || !location || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, description, date, time, location, and category are required'
+      });
+    }
+
     const result = await pool.query(
       'INSERT INTO events (title, description, date, time, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [title, description, date, time, location, category, organizer]
+      [title, description, date, time, location, category, organizer || null]
     );
-    res.status(201).json({ success: true, event: result.rows[0] });
+
+    res.status(201).json({
+      success: true,
+      message: 'Event created successfully',
+      event: result.rows[0]
+    });
   } catch (error) {
-    console.error('Create event error:', error);
-    res.status(500).json({ error: 'Failed to create event' });
+    console.error('Create event error full:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
@@ -53,22 +87,17 @@ exports.createEvent = async (req, res) => {
 exports.deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('Delete event request for ID:', id);
 
-    // Check if event exists
     const eventResult = await pool.query(
       'SELECT id FROM events WHERE id = $1',
       [id]
     );
 
     if (eventResult.rows.length === 0) {
-      console.log('Event not found:', id);
       return res.status(404).json({ success: false, error: 'Event not found' });
     }
 
-    // Delete the event (cascades will delete attendees and reminders)
-    const deleteResult = await pool.query('DELETE FROM events WHERE id = $1', [id]);
-    console.log('Event deleted:', id, 'Rows deleted:', deleteResult.rowCount);
+    await pool.query('DELETE FROM events WHERE id = $1', [id]);
 
     res.status(200).json({ success: true, message: 'Event deleted successfully' });
   } catch (error) {
@@ -82,33 +111,29 @@ exports.markAttendance = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
- 
-    // Check if already attending
+
     const existing = await pool.query(
       'SELECT id FROM event_attendees WHERE event_id = $1 AND user_id = $2',
       [id, userId]
     );
- 
+
     if (existing.rows.length > 0) {
-      // Remove attendance (toggle off)
       await pool.query(
         'DELETE FROM event_attendees WHERE event_id = $1 AND user_id = $2',
         [id, userId]
       );
     } else {
-      // Add attendance (toggle on)
       await pool.query(
         'INSERT INTO event_attendees (event_id, user_id) VALUES ($1, $2)',
         [id, userId]
       );
     }
- 
-    // Get updated count
+
     const countResult = await pool.query(
       'SELECT COUNT(*) FROM event_attendees WHERE event_id = $1',
       [id]
     );
- 
+
     res.json({
       success: true,
       attending: existing.rows.length === 0,
@@ -119,7 +144,7 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json({ error: 'Failed to mark attendance' });
   }
 };
- 
+
 // Get attendance
 exports.getAttendees = async (req, res) => {
   try {
@@ -129,7 +154,7 @@ exports.getAttendees = async (req, res) => {
       'JOIN users u ON ea.user_id = u.id WHERE ea.event_id = $1',
       [id]
     );
- 
+
     res.json({
       success: true,
       attendees: result.rows,
@@ -146,10 +171,12 @@ exports.bookmarkEvent = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
+
     await pool.query(
       'INSERT INTO bookmarks (user_id, event_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [userId, id]
     );
+
     res.json({ success: true, message: 'Event bookmarked' });
   } catch (error) {
     console.error('Bookmark error:', error);
@@ -162,10 +189,12 @@ exports.removeBookmark = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.userId;
+
     await pool.query(
       'DELETE FROM bookmarks WHERE user_id = $1 AND event_id = $2',
       [userId, id]
     );
+
     res.json({ success: true, message: 'Bookmark removed' });
   } catch (error) {
     console.error('Remove bookmark error:', error);
@@ -188,6 +217,28 @@ exports.getBookmarks = async (req, res) => {
   }
 };
 
+// Get events the user has attended/RSVP'd to
+exports.getMyEvents = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const result = await pool.query(
+      'SELECT e.* FROM event_attendees ea ' +
+      'JOIN events e ON ea.event_id = e.id ' +
+      'WHERE ea.user_id = $1 ORDER BY e.date ASC',
+      [userId]
+    );
+
+    const now = new Date();
+    const upcoming = result.rows.filter(e => new Date(e.date) >= now);
+    const past = result.rows.filter(e => new Date(e.date) < now);
+
+    res.json({ success: true, upcoming, past });
+  } catch (error) {
+    console.error('Get my events error:', error);
+    res.status(500).json({ error: 'Failed to fetch your events' });
+  }
+};
+
 // Get reminder status for an event
 exports.getReminderStatus = async (req, res) => {
   try {
@@ -200,7 +251,6 @@ exports.getReminderStatus = async (req, res) => {
     );
 
     if (result.rows.length === 0) {
-      // No reminder record exists, return default
       return res.json({
         success: true,
         reminderExists: false,
@@ -228,7 +278,6 @@ exports.toggleReminder = async (req, res) => {
     const userId = req.userId;
     const { reminderEnabled, reminderMinutesBefore = 60 } = req.body;
 
-    // Check if reminder record exists
     const existing = await pool.query(
       'SELECT id FROM event_reminders WHERE event_id = $1 AND user_id = $2',
       [id, userId]
@@ -236,13 +285,11 @@ exports.toggleReminder = async (req, res) => {
 
     let result;
     if (existing.rows.length > 0) {
-      // Update existing reminder
       result = await pool.query(
         'UPDATE event_reminders SET reminder_enabled = $1, reminder_minutes_before = $2, updated_at = NOW() WHERE event_id = $3 AND user_id = $4 RETURNING *',
         [reminderEnabled, reminderMinutesBefore, id, userId]
       );
     } else {
-      // Create new reminder record
       result = await pool.query(
         'INSERT INTO event_reminders (event_id, user_id, reminder_enabled, reminder_minutes_before) VALUES ($1, $2, $3, $4) RETURNING *',
         [id, userId, reminderEnabled, reminderMinutesBefore]
@@ -262,7 +309,7 @@ exports.toggleReminder = async (req, res) => {
   }
 };
 
-// Disable all reminders for an event
+// Disable reminder for an event
 exports.disableReminder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -279,4 +326,3 @@ exports.disableReminder = async (req, res) => {
     res.status(500).json({ error: 'Failed to disable reminder' });
   }
 };
-
