@@ -1,3 +1,4 @@
+import * as Location from 'expo-location';
 import React, { useState, useEffect, useCallback } from 'react';
 import MapView, { Marker } from '../mocks/react-native-maps';
 import {
@@ -14,7 +15,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
- 
+
 const getApiUrl = () => {
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
@@ -23,44 +24,70 @@ const getApiUrl = () => {
   }
   return 'http://localhost:3000/api';
 };
- 
+
 const API_URL = getApiUrl();
- 
+
 const LOCATION_COORDS = {
-  'Main Hall':         { lat: 53.2784, lng: -9.0103 },
-  'Computer Lab A':    { lat: 53.2787, lng: -9.0098 },
-  'Sports Hall':       { lat: 53.2779, lng: -9.0109 },
-  'Exhibition Center': { lat: 53.2791, lng: -9.0095 },
-  'Library Room 201':  { lat: 53.2782, lng: -9.0099 },
-  'Student Bar':       { lat: 53.2780, lng: -9.0105 },
+  'Main Hall': { lat: 53.2707, lng: -9.0568 },
+  'Computer Lab A': { lat: 53.2710, lng: -9.0572 },
+  'Sports Hall': { lat: 53.2703, lng: -9.0560 },
+  'Exhibition Center': { lat: 53.2715, lng: -9.0580 },
+  'Library Room 201': { lat: 53.2708, lng: -9.0575 },
+  'Student Bar': { lat: 53.2705, lng: -9.0565 },
 };
- 
+
+const getDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 export default function EventsListScreen({ navigation }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
- 
+  const [viewMode, setViewMode] = useState('list');
+  const [sortByDistance, setSortByDistance] = useState(false);
+
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Profile')}
-          style={{ marginRight: 16 }}
-        >
-          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TutorsList')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+              Tutors
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation]);
- 
+
   const fetchEvents = async (query = '') => {
     try {
       const searchParam = query ? `?search=${encodeURIComponent(query)}` : '';
       const response = await fetch(`${API_URL}/events${searchParam}`);
       const data = await response.json();
- 
+
       if (data.success) {
         setEvents(data.events);
       }
@@ -71,40 +98,85 @@ export default function EventsListScreen({ navigation }) {
       setRefreshing(false);
     }
   };
- 
+
   useEffect(() => {
     fetchEvents();
   }, []);
- 
+
   useFocusEffect(
     useCallback(() => {
       fetchEvents(searchQuery);
     }, [searchQuery])
   );
- 
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchEvents(searchQuery);
   };
- 
+
   const handleSearch = (text) => {
     setSearchQuery(text);
     fetchEvents(text);
   };
- 
+
+  const handleSortByLocation = async () => {
+    if (sortByDistance) {
+      setSortByDistance(false);
+      fetchEvents(searchQuery);
+      return;
+    }
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission needed', 'Enable location to sort by distance.');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+
+      const sorted = [...events].sort((a, b) => {
+        const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
+        const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
+
+        const distA = getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          coordsA.lat,
+          coordsA.lng
+        );
+
+        const distB = getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          coordsB.lat,
+          coordsB.lng
+        );
+
+        return distA - distB;
+      });
+
+      setEvents(sorted);
+      setSortByDistance(true);
+    } catch (error) {
+      Alert.alert('Error', 'Could not get your location');
+    }
+  };
+
   const renderMapView = () => (
     <MapView
       style={styles.map}
       initialRegion={{
-        latitude: 53.2785,
-        longitude: -9.0102,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
+        latitude: 53.2707,
+        longitude: -9.0568,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
       }}
     >
       {events.map((item) => {
         const coords = LOCATION_COORDS[item.location];
         if (!coords) return null;
+
         return (
           <Marker
             key={item.id.toString()}
@@ -119,7 +191,7 @@ export default function EventsListScreen({ navigation }) {
       })}
     </MapView>
   );
- 
+
   const getCategoryColor = (category) => {
     const safeCategory = category ? category.toLowerCase().trim() : '';
     const colors = {
@@ -130,7 +202,7 @@ export default function EventsListScreen({ navigation }) {
     };
     return colors[safeCategory] || '#64748B';
   };
- 
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
@@ -139,7 +211,7 @@ export default function EventsListScreen({ navigation }) {
       day: 'numeric'
     });
   };
- 
+
   const renderEvent = (item) => (
     <TouchableOpacity
       key={item.id.toString()}
@@ -157,18 +229,22 @@ export default function EventsListScreen({ navigation }) {
             {item.category ? item.category.toUpperCase() : 'EVENT'}
           </Text>
         </View>
+
         <Text style={styles.attendeeCount}>
           {item.attendee_count || 0} going
         </Text>
       </View>
+
       <Text style={styles.eventTitle}>{item.title}</Text>
+
       <Text style={styles.eventInfo}>
         {formatDate(item.date)} at {item.time}
       </Text>
+
       <Text style={styles.eventLocation}>{item.location}</Text>
     </TouchableOpacity>
   );
- 
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -176,7 +252,7 @@ export default function EventsListScreen({ navigation }) {
       </View>
     );
   }
- 
+
   return (
     <View style={styles.container}>
       <View style={styles.searchContainer}>
@@ -188,7 +264,7 @@ export default function EventsListScreen({ navigation }) {
           autoCapitalize="none"
         />
       </View>
- 
+
       <View style={styles.createButtonContainer}>
         <TouchableOpacity
           style={styles.createButton}
@@ -197,7 +273,16 @@ export default function EventsListScreen({ navigation }) {
           <Text style={styles.createButtonText}>Create Event</Text>
         </TouchableOpacity>
       </View>
- 
+
+      <TouchableOpacity
+        style={[styles.locationButton, sortByDistance && styles.locationButtonActive]}
+        onPress={handleSortByLocation}
+      >
+        <Text style={[styles.locationButtonText, sortByDistance && styles.locationButtonTextActive]}>
+          {sortByDistance ? 'Sorted by Nearest' : 'Sort by Nearest'}
+        </Text>
+      </TouchableOpacity>
+
       <View style={styles.viewToggleContainer}>
         <TouchableOpacity
           style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
@@ -207,6 +292,7 @@ export default function EventsListScreen({ navigation }) {
             List
           </Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
           onPress={() => setViewMode('map')}
@@ -216,8 +302,10 @@ export default function EventsListScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </View>
- 
-      {viewMode === 'map' ? renderMapView() : (
+
+      {viewMode === 'map' ? (
+        renderMapView()
+      ) : (
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.list}
@@ -235,7 +323,7 @@ export default function EventsListScreen({ navigation }) {
     </View>
   );
 }
- 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -336,6 +424,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  locationButton: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  locationButtonActive: {
+    backgroundColor: '#10B981',
+  },
+  locationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  locationButtonTextActive: {
+    color: '#FFFFFF',
+  },
   map: {
     flex: 1,
     width: '100%',
@@ -343,7 +450,7 @@ const styles = StyleSheet.create({
   viewToggleContainer: {
     flexDirection: 'row',
     marginHorizontal: 16,
-    marginTop: 12,
+    marginTop: 4,
     marginBottom: 4,
     backgroundColor: '#E2E8F0',
     borderRadius: 12,
