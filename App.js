@@ -12,6 +12,7 @@ import TutorProfileScreen from './src/screens/TutorProfileScreen';
 import TutorsListScreen from './src/screens/TutorsListScreen';
 import TutorDetailsScreen from './src/screens/TutorDetailsScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
+import EventMapScreen from './src/screens/EventMapScreen';
 
 const Stack = createStackNavigator();
 
@@ -64,7 +65,7 @@ export default function App() {
           component={CreateEventScreen}
           options={{ title: 'Create Event' }}
         />
-        <Stack.Screen
+<Stack.Screen
           name="TutorProfile"
           component={TutorProfileScreen}
           options={{ title: 'Tutor Profile' }}
@@ -83,6 +84,11 @@ export default function App() {
           name="History"
           component={HistoryScreen}
           options={{ title: 'My History' }}
+        />
+        <Stack.Screen
+          name="EventMap"
+          component={EventMapScreen}
+          options={{ title: 'Event Map' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

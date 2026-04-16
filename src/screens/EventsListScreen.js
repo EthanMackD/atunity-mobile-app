@@ -59,21 +59,24 @@ export default function EventsListScreen({ navigation }) {
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
-            onPress={() => navigation.navigate('TutorsList')}
+onPress={() => navigation.navigate('TutorsList')}
             style={{ marginRight: 16 }}
           >
             <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
               Tutors
             </Text>
           </TouchableOpacity>
-
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EventMap')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Map</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={{ marginRight: 16 }}
           >
-            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>
-              Profile
-            </Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
           </TouchableOpacity>
         </View>
       ),
