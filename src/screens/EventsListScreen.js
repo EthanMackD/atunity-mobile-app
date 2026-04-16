@@ -17,6 +17,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
+  if (Platform.OS === 'web') return 'http://localhost:3000/api';
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
