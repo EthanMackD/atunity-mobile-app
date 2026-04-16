@@ -61,10 +61,26 @@ exports.getAllTutors = async (req, res) => {
     let params = [];
 
     if (search) {
-      query = "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' AND (LOWER(name) LIKE $1 OR LOWER(subjects) LIKE $1 OR LOWER(course) LIKE $1 OR LOWER(description) LIKE $1) ORDER BY name ASC";
+      query = `
+        SELECT id, name, course, year, subjects, availability, experience, description, price, completed_sessions
+        FROM users
+        WHERE role = 'tutor'
+          AND (
+            LOWER(name) LIKE $1 OR
+            LOWER(subjects) LIKE $1 OR
+            LOWER(course) LIKE $1 OR
+            LOWER(description) LIKE $1
+          )
+        ORDER BY name ASC
+      `;
       params = [`%${search.toLowerCase()}%`];
     } else {
-      query = "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' ORDER BY name ASC";
+      query = `
+        SELECT id, name, course, year, subjects, availability, experience, description, price, completed_sessions
+        FROM users
+        WHERE role = 'tutor'
+        ORDER BY name ASC
+      `;
     }
 
     const result = await pool.query(query, params);
@@ -78,16 +94,13 @@ exports.getAllTutors = async (req, res) => {
 exports.getTutorById = async (req, res) => {
   try {
     const { id } = req.params;
-
     const result = await pool.query(
       "SELECT id, name, email, course, year, role, subjects, availability, experience, description, price, created_at FROM users WHERE id = $1 AND role = 'tutor'",
       [id]
     );
-
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Tutor not found' });
     }
-
     res.json({ success: true, tutor: result.rows[0] });
   } catch (error) {
     console.error('Get tutor by id error:', error);
