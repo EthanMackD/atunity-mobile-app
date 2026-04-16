@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  ActivityIndicator
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api } from '../services/api';
 
@@ -9,11 +18,12 @@ export default function SignupScreen({ navigation }) {
   const [name, setName] = useState('');
   const [course, setCourse] = useState('');
   const [year, setYear] = useState('');
+  const [role, setRole] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
-    if (!email || !password || !name) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!email || !password || !name || !role) {
+      Alert.alert('Error', 'Please fill in all required fields and select a role');
       return;
     }
 
@@ -29,11 +39,19 @@ export default function SignupScreen({ navigation }) {
 
     setLoading(true);
     try {
-      const data = await api.register(email, password, name, course, year ? parseInt(year) : null);
+      const data = await api.register(
+        email,
+        password,
+        name,
+        course,
+        year ? parseInt(year) : null,
+        role
+      );
 
       if (data.success) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
+
         Alert.alert('Welcome!', `Account created for ${data.user.name}`, [
           { text: 'OK', onPress: () => navigation.replace('EventsList') }
         ]);
@@ -91,6 +109,45 @@ export default function SignupScreen({ navigation }) {
         keyboardType="number-pad"
       />
 
+      <Text style={styles.roleLabel}>Choose Role *</Text>
+
+      <View style={styles.roleContainer}>
+        <TouchableOpacity
+          style={[
+            styles.roleButton,
+            role === 'student' && styles.roleButtonSelected
+          ]}
+          onPress={() => setRole('student')}
+        >
+          <Text
+            style={[
+              styles.roleButtonText,
+              role === 'student' && styles.roleButtonTextSelected
+            ]}
+          >
+            Student
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.roleButton,
+            styles.roleButtonLast,
+            role === 'tutor' && styles.roleButtonSelected
+          ]}
+          onPress={() => setRole('tutor')}
+        >
+          <Text
+            style={[
+              styles.roleButtonText,
+              role === 'tutor' && styles.roleButtonTextSelected
+            ]}
+          >
+            Tutor
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
         {loading ? (
           <ActivityIndicator color="#FFFFFF" />
@@ -136,6 +193,40 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontSize: 16,
     backgroundColor: '#FFFFFF',
+  },
+  roleLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1E293B',
+  },
+  roleContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+  roleButton: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  roleButtonLast: {
+    marginRight: 0,
+  },
+  roleButtonSelected: {
+    backgroundColor: '#065A82',
+    borderColor: '#065A82',
+  },
+  roleButtonText: {
+    color: '#1E293B',
+    fontWeight: '600',
+  },
+  roleButtonTextSelected: {
+    color: '#FFFFFF',
   },
   button: {
     backgroundColor: '#065A82',

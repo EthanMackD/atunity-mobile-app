@@ -1,10 +1,19 @@
 import * as Location from 'expo-location';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import MapView, { Marker } from '../mocks/react-native-maps';
 import {
-  View, Text, TouchableOpacity,
-  StyleSheet, ActivityIndicator, RefreshControl, TextInput, Platform, ScrollView, Alert
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
+  Platform,
+  ScrollView,
+  Alert
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
@@ -30,12 +39,15 @@ const LOCATION_COORDS = {
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
@@ -44,18 +56,29 @@ export default function EventsListScreen({ navigation }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('list');
   const [sortByDistance, setSortByDistance] = useState(false);
-  const [userLocation, setUserLocation] = useState(null);
 
   React.useLayoutEffect(() => {
     navigation.setOptions({
       headerRight: () => (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Profile')}
-          style={{ marginRight: 16 }}
-        >
-          <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('TutorsList')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+              Tutors
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Profile')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Profile</Text>
+          </TouchableOpacity>
+        </View>
       ),
     });
   }, [navigation]);
@@ -65,6 +88,7 @@ export default function EventsListScreen({ navigation }) {
       const searchParam = query ? `?search=${encodeURIComponent(query)}` : '';
       const response = await fetch(`${API_URL}/events${searchParam}`);
       const data = await response.json();
+
       if (data.success) {
         setEvents(data.events);
       }
@@ -80,9 +104,15 @@ export default function EventsListScreen({ navigation }) {
     fetchEvents();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchEvents(searchQuery);
+    }, [searchQuery])
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
-    fetchEvents();
+    fetchEvents(searchQuery);
   };
 
   const handleSearch = (text) => {
@@ -105,13 +135,25 @@ export default function EventsListScreen({ navigation }) {
       }
 
       const location = await Location.getCurrentPositionAsync({});
-      setUserLocation(location.coords);
 
       const sorted = [...events].sort((a, b) => {
         const coordsA = LOCATION_COORDS[a.location] || { lat: 53.2707, lng: -9.0568 };
         const coordsB = LOCATION_COORDS[b.location] || { lat: 53.2707, lng: -9.0568 };
-        const distA = getDistance(location.coords.latitude, location.coords.longitude, coordsA.lat, coordsA.lng);
-        const distB = getDistance(location.coords.latitude, location.coords.longitude, coordsB.lat, coordsB.lng);
+
+        const distA = getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          coordsA.lat,
+          coordsA.lng
+        );
+
+        const distB = getDistance(
+          location.coords.latitude,
+          location.coords.longitude,
+          coordsB.lat,
+          coordsB.lng
+        );
+
         return distA - distB;
       });
 
@@ -122,20 +164,52 @@ export default function EventsListScreen({ navigation }) {
     }
   };
 
+  const renderMapView = () => (
+    <MapView
+      style={styles.map}
+      initialRegion={{
+        latitude: 53.2707,
+        longitude: -9.0568,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }}
+    >
+      {events.map((item) => {
+        const coords = LOCATION_COORDS[item.location];
+        if (!coords) return null;
+
+        return (
+          <Marker
+            key={item.id.toString()}
+            coordinate={{ latitude: coords.lat, longitude: coords.lng }}
+            title={item.title}
+            description={item.location}
+            onCalloutPress={() =>
+              navigation.navigate('EventDetails', { eventId: item.id })
+            }
+          />
+        );
+      })}
+    </MapView>
+  );
+
   const getCategoryColor = (category) => {
+    const safeCategory = category ? category.toLowerCase().trim() : '';
     const colors = {
       academic: '#3B82F6',
       social: '#8B5CF6',
       sports: '#10B981',
       careers: '#F59E0B',
     };
-    return colors[category] || '#64748B';
+    return colors[safeCategory] || '#64748B';
   };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
-      weekday: 'short', month: 'short', day: 'numeric'
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -146,20 +220,28 @@ export default function EventsListScreen({ navigation }) {
       onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
     >
       <View style={styles.cardHeader}>
-        <View style={[styles.categoryBadge,
-          { backgroundColor: getCategoryColor(item.category) }]}>
+        <View
+          style={[
+            styles.categoryBadge,
+            { backgroundColor: getCategoryColor(item.category) }
+          ]}
+        >
           <Text style={styles.categoryText}>
             {item.category ? item.category.toUpperCase() : 'EVENT'}
           </Text>
         </View>
+
         <Text style={styles.attendeeCount}>
           {item.attendee_count || 0} going
         </Text>
       </View>
+
       <Text style={styles.eventTitle}>{item.title}</Text>
+
       <Text style={styles.eventInfo}>
         {formatDate(item.date)} at {item.time}
       </Text>
+
       <Text style={styles.eventLocation}>{item.location}</Text>
     </TouchableOpacity>
   );
@@ -184,6 +266,15 @@ export default function EventsListScreen({ navigation }) {
         />
       </View>
 
+      <View style={styles.createButtonContainer}>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => navigation.navigate('CreateEvent')}
+        >
+          <Text style={styles.createButtonText}>Create Event</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity
         style={[styles.locationButton, sortByDistance && styles.locationButtonActive]}
         onPress={handleSortByLocation}
@@ -193,27 +284,64 @@ export default function EventsListScreen({ navigation }) {
         </Text>
       </TouchableOpacity>
 
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {events.length === 0
-          ? <Text style={styles.emptyText}>No events found</Text>
-          : events.map(renderEvent)
-        }
-      </ScrollView>
+      <View style={styles.viewToggleContainer}>
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'list' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('list')}
+        >
+          <Text style={[styles.toggleButtonText, viewMode === 'list' && styles.toggleButtonTextActive]}>
+            List
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.toggleButton, viewMode === 'map' && styles.toggleButtonActive]}
+          onPress={() => setViewMode('map')}
+        >
+          <Text style={[styles.toggleButtonText, viewMode === 'map' && styles.toggleButtonTextActive]}>
+            Map
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {viewMode === 'map' ? (
+        renderMapView()
+      ) : (
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.list}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          {events.length === 0 ? (
+            <Text style={styles.emptyText}>No events found</Text>
+          ) : (
+            events.map(renderEvent)
+          )}
+        </ScrollView>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8FAFC' },
-  scrollView: { flex: 1, ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {}) },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC'
+  },
+  scrollView: {
+    flex: 1,
+    ...(Platform.OS === 'web' ? { minHeight: 0, overflow: 'auto' } : {})
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  list: {
+    padding: 16
+  },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
@@ -241,15 +369,25 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: 'bold',
   },
-  attendeeCount: { fontSize: 13, color: '#64748B' },
+  attendeeCount: {
+    fontSize: 13,
+    color: '#64748B'
+  },
   eventTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 4,
   },
-  eventInfo: { fontSize: 14, color: '#065A82', marginBottom: 2 },
-  eventLocation: { fontSize: 14, color: '#64748B' },
+  eventInfo: {
+    fontSize: 14,
+    color: '#065A82',
+    marginBottom: 2
+  },
+  eventLocation: {
+    fontSize: 14,
+    color: '#64748B'
+  },
   emptyText: {
     textAlign: 'center',
     fontSize: 16,
@@ -272,6 +410,21 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 1,
   },
+  createButtonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  createButton: {
+    backgroundColor: '#065A82',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   locationButton: {
     marginHorizontal: 16,
     marginVertical: 8,
@@ -289,6 +442,36 @@ const styles = StyleSheet.create({
     color: '#64748B',
   },
   locationButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  map: {
+    flex: 1,
+    width: '100%',
+  },
+  viewToggleContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 16,
+    marginTop: 4,
+    marginBottom: 4,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  toggleButtonActive: {
+    backgroundColor: '#065A82',
+  },
+  toggleButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  toggleButtonTextActive: {
     color: '#FFFFFF',
   },
 });

@@ -55,15 +55,31 @@ exports.getEventById = async (req, res) => {
 // POST create event
 exports.createEvent = async (req, res) => {
   try {
-    const { title, description, date, location, category, organizer } = req.body;
+    const { title, description, date, time, location, category } = req.body;
+
+    if (!title || !description || !date || !time || !location || !category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, description, date, time, location, and category are required'
+      });
+    }
+
     const result = await pool.query(
-      'INSERT INTO events (title, description, date, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, description, date, location, category, organizer]
+      'INSERT INTO events (title, description, date, time, location, category) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [title, description, date, time, location, category]
     );
-    res.status(201).json({ success: true, event: result.rows[0] });
+
+    res.status(201).json({
+      success: true,
+      message: 'Event created successfully',
+      event: result.rows[0]
+    });
   } catch (error) {
-    console.error('Create event error:', error);
-    res.status(500).json({ error: 'Failed to create event' });
+    console.error('Create event error full:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 };
 
@@ -128,5 +144,116 @@ exports.getAttendees = async (req, res) => {
   } catch (error) {
     console.error('Get attendees error:', error);
     res.status(500).json({ error: 'Failed to fetch attendees' });
+  }
+};
+
+
+// Get events the user has attended/RSVP'd to
+exports.getMyEvents = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const result = await pool.query(
+      'SELECT e.* FROM event_attendees ea ' +
+      'JOIN events e ON ea.event_id = e.id ' +
+      'WHERE ea.user_id = $1 ORDER BY e.date ASC',
+      [userId]
+    );
+
+    const now = new Date();
+    const upcoming = result.rows.filter(e => new Date(e.date) >= now);
+    const past = result.rows.filter(e => new Date(e.date) < now);
+
+    res.json({ success: true, upcoming, past });
+  } catch (error) {
+    console.error('Get my events error:', error);
+    res.status(500).json({ error: 'Failed to fetch your events' });
+  }
+};
+
+// Get reminder status for an event
+exports.getReminderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    const result = await pool.query(
+      'SELECT id, reminder_enabled, reminder_minutes_before FROM event_reminders WHERE event_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({
+        success: true,
+        reminderExists: false,
+        reminderEnabled: false,
+        reminderMinutesBefore: 60
+      });
+    }
+
+    res.json({
+      success: true,
+      reminderExists: true,
+      reminderEnabled: result.rows[0].reminder_enabled,
+      reminderMinutesBefore: result.rows[0].reminder_minutes_before
+    });
+  } catch (error) {
+    console.error('Get reminder status error:', error);
+    res.status(500).json({ error: 'Failed to fetch reminder status' });
+  }
+};
+
+// Toggle reminder for an event
+exports.toggleReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+    const { reminderEnabled, reminderMinutesBefore = 60 } = req.body;
+
+    const existing = await pool.query(
+      'SELECT id FROM event_reminders WHERE event_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    let result;
+    if (existing.rows.length > 0) {
+      result = await pool.query(
+        'UPDATE event_reminders SET reminder_enabled = $1, reminder_minutes_before = $2, updated_at = NOW() WHERE event_id = $3 AND user_id = $4 RETURNING *',
+        [reminderEnabled, reminderMinutesBefore, id, userId]
+      );
+    } else {
+      result = await pool.query(
+        'INSERT INTO event_reminders (event_id, user_id, reminder_enabled, reminder_minutes_before) VALUES ($1, $2, $3, $4) RETURNING *',
+        [id, userId, reminderEnabled, reminderMinutesBefore]
+      );
+    }
+
+    res.json({
+      success: true,
+      reminder: {
+        reminderEnabled: result.rows[0].reminder_enabled,
+        reminderMinutesBefore: result.rows[0].reminder_minutes_before
+      }
+    });
+  } catch (error) {
+    console.error('Toggle reminder error:', error);
+    res.status(500).json({ error: 'Failed to update reminder' });
+  }
+};
+
+// Disable reminder for an event
+exports.disableReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    await pool.query(
+      'UPDATE event_reminders SET reminder_enabled = FALSE WHERE event_id = $1 AND user_id = $2',
+      [id, userId]
+    );
+
+    res.json({ success: true, message: 'Reminder disabled' });
+  } catch (error) {
+    console.error('Disable reminder error:', error);
+    res.status(500).json({ error: 'Failed to disable reminder' });
   }
 };
