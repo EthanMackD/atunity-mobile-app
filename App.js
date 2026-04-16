@@ -11,6 +11,7 @@ import CreateEventScreen from './src/screens/CreateEventScreen';
 import TutorProfileScreen from './src/screens/TutorProfileScreen';
 import TutorsListScreen from './src/screens/TutorsListScreen';
 import TutorDetailsScreen from './src/screens/TutorDetailsScreen';
+import HistoryScreen from './src/screens/HistoryScreen';
 
 const Stack = createStackNavigator();
 
@@ -58,29 +59,30 @@ export default function App() {
           component={ProfileScreen}
           options={{ title: 'My Profile' }}
         />
-
-        <Stack.Screen
+<Stack.Screen
           name="CreateEvent"
           component={CreateEventScreen}
           options={{ title: 'Create Event' }}
         />
-
         <Stack.Screen
           name="TutorProfile"
           component={TutorProfileScreen}
           options={{ title: 'Tutor Profile' }}
         />
-
         <Stack.Screen
           name="TutorsList"
           component={TutorsListScreen}
           options={{ title: 'Tutors' }}
         />
-
         <Stack.Screen
           name="TutorDetails"
           component={TutorDetailsScreen}
           options={{ title: 'Tutor Details' }}
+        />
+        <Stack.Screen
+          name="History"
+          component={HistoryScreen}
+          options={{ title: 'My History' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
