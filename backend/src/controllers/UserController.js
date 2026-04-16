@@ -56,10 +56,18 @@ exports.updateTutorProfile = async (req, res) => {
 
 exports.getAllTutors = async (req, res) => {
   try {
-    const result = await pool.query(
-      "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' ORDER BY name ASC"
-    );
+    const { search } = req.query;
+    let query;
+    let params = [];
 
+    if (search) {
+      query = "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' AND (LOWER(name) LIKE $1 OR LOWER(subjects) LIKE $1 OR LOWER(course) LIKE $1 OR LOWER(description) LIKE $1) ORDER BY name ASC";
+      params = [`%${search.toLowerCase()}%`];
+    } else {
+      query = "SELECT id, name, course, year, subjects, availability, experience, description, price FROM users WHERE role = 'tutor' ORDER BY name ASC";
+    }
+
+    const result = await pool.query(query, params);
     res.json({ success: true, tutors: result.rows });
   } catch (error) {
     console.error('Get tutors error:', error);

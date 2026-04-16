@@ -26,11 +26,13 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [attendees, setAttendees] = useState([]);
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [reminderSet, setReminderSet] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
     checkRsvpStatus();
     checkBookmark();
+    checkReminder();
   }, []);
 
   const fetchEventDetails = async () => {
@@ -149,6 +151,44 @@ export default function EventDetailsScreen({ route, navigation }) {
     }
   };
 
+  const checkReminder = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) setReminderSet(data.reminderEnabled);
+    } catch (error) {
+      console.error('Check reminder error:', error);
+    }
+  };
+
+  const toggleReminder = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        Alert.alert('Error', 'Please log in to set reminders');
+        return;
+      }
+      const response = await fetch(`${API_URL}/events/${eventId}/reminders`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reminderEnabled: !reminderSet }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setReminderSet(data.reminder.reminderEnabled);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update reminder');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
@@ -217,8 +257,16 @@ export default function EventDetailsScreen({ route, navigation }) {
               {bookmarked ? 'Bookmarked' : 'Bookmark'}
             </Text>
           </TouchableOpacity>
-        </View>
 
+          <TouchableOpacity
+            style={[styles.reminderButton, reminderSet && styles.reminderSetButton]}
+            onPress={toggleReminder}
+          >
+            <Text style={styles.reminderButtonText}>
+              {reminderSet ? 'Reminder Set' : 'Set Reminder'}
+            </Text>
+          </TouchableOpacity>
+        </View>
         {attendees.length > 0 && (
           <View style={styles.attendeesSection}>
             <Text style={styles.sectionTitle}>Who's Going</Text>
@@ -281,5 +329,23 @@ const styles = StyleSheet.create({
   },
   attendeeAvatarText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 16 },
   attendeeName: { fontSize: 15, fontWeight: '600', color: '#1E293B' },
-  attendeeCourse: { fontSize: 13, color: '#64748B' },
+  attendeeCourse: { fontSize: 13, color: '#64748B' 
+
+  },
+  reminderButton: {
+    backgroundColor: '#E2E8F0',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginTop: 10,
+  },
+  reminderSetButton: {
+    backgroundColor: '#3B82F6',
+  },
+  reminderButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#475569',
+    textAlign: 'center',
+  },
 });
