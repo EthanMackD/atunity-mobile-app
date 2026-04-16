@@ -12,6 +12,7 @@ import TutorProfileScreen from './src/screens/TutorProfileScreen';
 import TutorsListScreen from './src/screens/TutorsListScreen';
 import TutorDetailsScreen from './src/screens/TutorDetailsScreen';
 import EditProfileScreen from './src/screens/editProfileScreen';
+import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 
 const Stack = createStackNavigator();
 
@@ -40,6 +41,12 @@ export default function App() {
           name="Signup"
           component={SignupScreen}
           options={{ headerShown: false }}
+        />
+
+        <Stack.Screen
+          name="ChangePassword"
+          component={ChangePasswordScreen}
+          options={{ title: 'Change Password' }}
         />
 
         <Stack.Screen

@@ -207,6 +207,13 @@ export default function ProfileScreen({ navigation }) {
         </TouchableOpacity>
       )}
 
+      <TouchableOpacity
+          style={styles.changePasswordButton}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Text style={styles.changePasswordText}>Change Password</Text>
+        </TouchableOpacity>
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -310,5 +317,19 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold'
-  }
+  },
+
+  changePasswordButton: {
+  backgroundColor: '#065A82',
+  padding: 16,
+  borderRadius: 12,
+  alignItems: 'center',
+  marginBottom: 15
+},
+
+changePasswordText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: 'bold'
+}
 });
