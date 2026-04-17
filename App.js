@@ -17,6 +17,7 @@ import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import EventMapScreen from './src/screens/EventMapScreen';
 import MySessionsScreen from './src/screens/MySessionsScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
 
 const Stack = createStackNavigator();
 
@@ -121,6 +122,11 @@ export default function App() {
           name="MySessions"
           component={MySessionsScreen}
           options={{ title: 'My Sessions' }}
+        />
+        <Stack.Screen
+          name="Friends"
+          component={FriendsScreen}
+          options={{ title: 'My Friends' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
