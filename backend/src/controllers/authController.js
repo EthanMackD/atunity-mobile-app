@@ -84,10 +84,47 @@ exports.login = async (req, res) => {
   }
 };
 
+exports.updateProfile = async (req, res) => {
+  try {
+    const { preferred_meeting_location } = req.body;
+    const result = await pool.query(
+      'UPDATE users SET preferred_meeting_location = $1 WHERE id = $2 RETURNING id, email, name, course, year, created_at, preferred_meeting_location, profile_picture',
+      [preferred_meeting_location, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+exports.uploadProfilePicture = async (req, res) => {
+  try {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'No image provided' });
+    }
+    const result = await pool.query(
+      'UPDATE users SET profile_picture = $1 WHERE id = $2 RETURNING id, email, name, course, year, created_at, preferred_meeting_location, profile_picture',
+      [imageBase64, req.userId]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Upload picture error:', error);
+    res.status(500).json({ error: 'Failed to upload picture' });
+  }
+};
+
 exports.getMe = async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, email, name, course, year, created_at FROM users WHERE id = $1',
+      'SELECT id, email, name, course, year, created_at, profile_picture FROM users WHERE id = $1',
       [req.userId]
     );
 
