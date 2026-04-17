@@ -85,3 +85,38 @@ CREATE TABLE tutoring_sessions (
 CREATE INDEX idx_tutoring_sessions_tutor ON tutoring_sessions(tutor_id);
 CREATE INDEX idx_tutoring_sessions_student ON tutoring_sessions(student_id);
 CREATE INDEX idx_tutoring_sessions_status ON tutoring_sessions(status);
+CREATE TABLE friends (
+  id SERIAL PRIMARY KEY,
+  requester_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(requester_id, receiver_id)
+);
+
+CREATE INDEX idx_friends_requester ON friends(requester_id);
+CREATE INDEX idx_friends_receiver ON friends(receiver_id);
+CREATE INDEX idx_friends_status ON friends(status);
+
+CREATE TABLE messages (
+  id SERIAL PRIMARY KEY,
+  sender_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  receiver_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_messages_sender ON messages(sender_id);
+CREATE INDEX idx_messages_receiver ON messages(receiver_id);
+
+CREATE TABLE event_messages (
+  id SERIAL PRIMARY KEY,
+  event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_event_messages_event ON event_messages(event_id);

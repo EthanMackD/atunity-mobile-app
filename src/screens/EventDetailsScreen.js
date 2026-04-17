@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert, Switch
+  StyleSheet, ActivityIndicator, Alert, Platform, TextInput, Switch
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -32,6 +32,9 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [loadingReminder, setLoadingReminder] = useState(false);
   const [userToken, setUserToken] = useState(null);
   const [isEventPast, setIsEventPast] = useState(false);
+  const [eventMessages, setEventMessages] = useState([]);
+  const [chatMessage, setChatMessage] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -242,6 +245,46 @@ export default function EventDetailsScreen({ route, navigation }) {
     }
   };
 
+  const fetchEventMessages = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const response = await fetch(`${API_URL}/events/${eventId}/messages`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setEventMessages(data.messages);
+      }
+    } catch (error) {
+      console.error('Failed to fetch event messages:', error);
+    }
+  };
+
+  const handleSendEventMessage = async () => {
+    if (!chatMessage.trim()) return;
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await fetch(`${API_URL}/events/${eventId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: chatMessage.trim() }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setChatMessage('');
+        fetchEventMessages();
+      } else {
+        Alert.alert('Error', data.error || 'Failed to send message');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to send message');
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
@@ -355,6 +398,55 @@ export default function EventDetailsScreen({ route, navigation }) {
               </View>
             ))}
           </View>
+       )}
+
+        {attending && (
+          <View style={styles.chatSection}>
+            <TouchableOpacity
+              style={styles.chatToggle}
+              onPress={() => {
+                setShowChat(!showChat);
+                if (!showChat) fetchEventMessages();
+              }}
+            >
+              <Text style={styles.chatToggleText}>
+                {showChat ? 'Hide Event Chat' : 'Event Chat'}
+              </Text>
+            </TouchableOpacity>
+
+            {showChat && (
+              <View style={styles.chatContainer}>
+                {eventMessages.length === 0 ? (
+                  <Text style={styles.noChatMessages}>No messages yet. Start the conversation!</Text>
+                ) : (
+                  eventMessages.map((msg) => (
+                    <View key={msg.id.toString()} style={styles.chatBubble}>
+                      <Text style={styles.chatSender}>{msg.user_name}</Text>
+                      <Text style={styles.chatContent}>{msg.content}</Text>
+                      <Text style={styles.chatTime}>
+                        {new Date(msg.created_at).toLocaleTimeString('en-IE', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                  ))
+                )}
+                <View style={styles.chatInputRow}>
+                  <TextInput
+                    style={styles.chatInput}
+                    value={chatMessage}
+                    onChangeText={setChatMessage}
+                    placeholder="Say something to the group..."
+                  />
+                  <TouchableOpacity
+                    style={styles.chatSendButton}
+                    onPress={handleSendEventMessage}
+                    disabled={!chatMessage.trim()}
+                  >
+                    <Text style={styles.chatSendText}>Send</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
         )}
       </View>
     </ScrollView>
@@ -450,4 +542,29 @@ const styles = StyleSheet.create({
   disabledText: {
     color: '#64748B',
   },
+  chatSection: { marginTop: 24, width: '100%' },
+  chatToggle: {
+    backgroundColor: '#065A82', padding: 12, borderRadius: 10,
+    alignItems: 'center', marginBottom: 10,
+  },
+  chatToggleText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 },
+  chatContainer: {
+    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08, shadowRadius: 3, elevation: 2,
+  },
+  noChatMessages: { fontSize: 14, color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', marginVertical: 12 },
+  chatBubble: {
+    backgroundColor: '#F1F5F9', borderRadius: 10, padding: 10, marginBottom: 8,
+  },
+  chatSender: { fontSize: 12, fontWeight: 'bold', color: '#065A82', marginBottom: 2 },
+  chatContent: { fontSize: 14, color: '#1E293B' },
+  chatTime: { fontSize: 10, color: '#94A3B8', marginTop: 4, textAlign: 'right' },
+  chatInputRow: { flexDirection: 'row', marginTop: 8, alignItems: 'center' },
+  chatInput: {
+    flex: 1, backgroundColor: '#F8FAFC', borderRadius: 20, paddingHorizontal: 14,
+    paddingVertical: 8, fontSize: 14, borderWidth: 1, borderColor: '#E2E8F0', marginRight: 8,
+  },
+  chatSendButton: { backgroundColor: '#065A82', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 8 },
+  chatSendText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14 },
 });
