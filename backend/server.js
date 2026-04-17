@@ -17,11 +17,13 @@ const bookmarksRoutes = require('./src/routes/bookmarks');
 const usersRoutes = require('./src/routes/users');
 const sessionsRoutes = require('./src/routes/sessions');
 const friendsRoutes = require('./src/routes/friends');
+const messagesRoutes = require('./src/routes/messages');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/bookmarks', bookmarksRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/messages', messagesRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/sessions', sessionsRoutes);
 

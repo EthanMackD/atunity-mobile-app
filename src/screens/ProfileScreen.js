@@ -227,6 +227,13 @@ export default function ProfileScreen({ navigation }) {
       >
         <Text style={styles.historyButtonText}>My Friends</Text>
       </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate('Conversations')}
+      >
+        <Text style={styles.historyButtonText}>Messages</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.changePasswordButton}
