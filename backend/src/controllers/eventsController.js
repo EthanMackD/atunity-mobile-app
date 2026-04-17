@@ -55,7 +55,7 @@ exports.getEventById = async (req, res) => {
 // POST create event
 exports.createEvent = async (req, res) => {
   try {
-    const { title, description, date, time, location, category, organizer } = req.body;
+    const { title, description, date, time, location, category, organizer, latitude, longitude } = req.body;
 
     if (!title || !description || !date || !time || !location || !category) {
       return res.status(400).json({
@@ -65,8 +65,8 @@ exports.createEvent = async (req, res) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO events (title, description, date, time, location, category, organizer) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-      [title, description, date, time, location, category, organizer || null]
+      'INSERT INTO events (title, description, date, time, location, category, organizer, latitude, longitude) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [title, description, date, time, location, category, organizer || null, latitude || null, longitude || null]
     );
 
     res.status(201).json({
