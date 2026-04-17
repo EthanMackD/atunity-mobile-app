@@ -67,3 +67,21 @@ CREATE INDEX idx_event_attendees_user_id ON event_attendees(user_id);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_event_reminders_enabled ON event_reminders(reminder_enabled, notification_sent);
 CREATE INDEX idx_event_reminders_event_user ON event_reminders(event_id, user_id);
+
+CREATE TABLE tutoring_sessions (
+  id SERIAL PRIMARY KEY,
+  tutor_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  student_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  subject VARCHAR(255) NOT NULL,
+  date DATE NOT NULL,
+  time TIME NOT NULL,
+  duration_minutes INTEGER DEFAULT 60,
+  status VARCHAR(20) DEFAULT 'confirmed',
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_tutoring_sessions_tutor ON tutoring_sessions(tutor_id);
+CREATE INDEX idx_tutoring_sessions_student ON tutoring_sessions(student_id);
+CREATE INDEX idx_tutoring_sessions_status ON tutoring_sessions(status);

@@ -15,11 +15,13 @@ const authRoutes = require('./src/routes/auth');
 const eventsRoutes = require('./src/routes/events');
 const bookmarksRoutes = require('./src/routes/bookmarks');
 const usersRoutes = require('./src/routes/users');
+const sessionsRoutes = require('./src/routes/sessions');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/bookmarks', bookmarksRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/sessions', sessionsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

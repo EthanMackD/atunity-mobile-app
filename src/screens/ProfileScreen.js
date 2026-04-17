@@ -213,6 +213,13 @@ export default function ProfileScreen({ navigation }) {
       >
         <Text style={styles.historyButtonText}>My Event History</Text>
       </TouchableOpacity>
+      
+      <TouchableOpacity
+        style={styles.historyButton}
+        onPress={() => navigation.navigate('MySessions')}
+      >
+        <Text style={styles.historyButtonText}>My Tutoring Sessions</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.changePasswordButton}
