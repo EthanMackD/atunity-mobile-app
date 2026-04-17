@@ -16,6 +16,7 @@ import EditProfileScreen from './src/screens/editProfileScreen';
 import ChangePasswordScreen from './src/screens/ChangePasswordScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import EventMapScreen from './src/screens/EventMapScreen';
+import MySessionsScreen from './src/screens/MySessionsScreen';
 
 const Stack = createStackNavigator();
 
@@ -99,7 +100,6 @@ export default function App() {
           component={TutorDetailsScreen}
           options={{ title: 'Tutor Details' }}
         />
-
         <Stack.Screen
           name="EditProfile"
           component={EditProfileScreen}
@@ -116,6 +116,11 @@ export default function App() {
           name="EventMap"
           component={EventMapScreen}
           options={{ title: 'Event Map' }}
+        />
+        <Stack.Screen
+          name="MySessions"
+          component={MySessionsScreen}
+          options={{ title: 'My Sessions' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
