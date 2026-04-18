@@ -15,9 +15,9 @@ This folder contains the files needed to run the project on another machine.
 3. Create `.env` using `.env.example`
 4. Make sure PostgreSQL is running
 5. Run the SQL in `database_setup.sql`
-6. Start backend
+6. Start backend - npm run dev
 
 ## Frontend setup
 1. Open terminal in frontend folder
 2. Run `npm install`
-3. Start the frontend
+3. Start the frontend - npx expo start
