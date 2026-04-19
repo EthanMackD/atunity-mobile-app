@@ -41,6 +41,15 @@ export default function TutorsListScreen({ navigation }) {
       headerRight: () => (
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
           <TouchableOpacity
+            onPress={() => navigation.navigate('Conversations')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' }}>
+              Messages
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={() => navigation.navigate('EventsList')}
             style={{ marginRight: 16 }}
           >
