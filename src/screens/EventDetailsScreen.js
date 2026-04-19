@@ -293,6 +293,34 @@ export default function EventDetailsScreen({ route, navigation }) {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    Alert.alert('Delete Event', 'Are you sure you want to delete this event?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await fetch(`${API_URL}/events/${eventId}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await response.json();
+            if (data.success) {
+              Alert.alert('Deleted', 'Event deleted successfully');
+              navigation.goBack();
+            } else {
+              Alert.alert('Error', data.error || 'Failed to delete event');
+            }
+          } catch (error) {
+            Alert.alert('Error', 'Failed to delete event');
+          }
+        },
+      },
+    ]);
+  };
+
   const openEdit = () => {
     setEditTitle(event.title);
     setEditDescription(event.description);
@@ -366,9 +394,14 @@ export default function EventDetailsScreen({ route, navigation }) {
       <View style={styles.content}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Text style={[styles.title, { flex: 1 }]}>{event.title}</Text>
-          <TouchableOpacity onPress={openEdit} style={styles.editButton}>
-            <Text style={styles.editButtonText}>Edit</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={openEdit} style={styles.editButton}>
+              <Text style={styles.editButtonText}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDeleteEvent} style={styles.deleteButton}>
+              <Text style={styles.deleteButtonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={styles.organiser}>Organised by {event.organizer}</Text>
 
@@ -537,7 +570,9 @@ const styles = StyleSheet.create({
   content: { padding: 20 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#1E293B', marginBottom: 4 },
   organiser: { fontSize: 15, color: '#64748B', marginBottom: 20 },
-  editButton: { backgroundColor: '#065A82', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, marginLeft: 10, marginTop: 4 },
+  editButton: { backgroundColor: '#065A82', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, marginTop: 4 },
+  deleteButton: { backgroundColor: '#EF4444', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, marginTop: 4 },
+  deleteButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
   editButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
   editForm: { backgroundColor: '#F1F5F9', borderRadius: 12, padding: 16, marginBottom: 20 },
   editFormTitle: { fontSize: 16, fontWeight: 'bold', color: '#065A82', marginBottom: 12 },
