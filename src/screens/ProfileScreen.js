@@ -8,11 +8,23 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 
-const API_URL = 'http://192.168.1.143:5000/api';
+const getApiUrl = () => {
+  if (Platform.OS === 'web') return 'http://192.168.1.143:5000/api';
+  const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
+  if (debuggerHost) {
+    const ip = debuggerHost.split(':')[0];
+    return `http://${ip}:5000/api`;
+  }
+  return 'http://192.168.1.143:5000/api';
+};
+
+const API_URL = getApiUrl();
 
 export default function ProfileScreen({ navigation }) {
   const [user, setUser] = useState(null);
@@ -20,10 +32,26 @@ export default function ProfileScreen({ navigation }) {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [savedEvents, setSavedEvents] = useState([]);
 
   useEffect(() => {
     loadUserProfile();
+    loadSavedEvents();
   }, []);
+
+  const loadSavedEvents = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+      const response = await fetch(`${API_URL}/events/bookmarks`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) setSavedEvents(data.events || []);
+    } catch (error) {
+      console.log('Failed to load saved events:', error);
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
@@ -290,6 +318,27 @@ export default function ProfileScreen({ navigation }) {
         )}
       </View>
 
+      <View style={styles.savedCard}>
+        <Text style={styles.preferenceTitle}>Saved Events</Text>
+        {savedEvents.length === 0 ? (
+          <Text style={styles.noSavedText}>No saved events yet</Text>
+        ) : (
+          savedEvents.map(event => (
+            <TouchableOpacity
+              key={event.id}
+              style={styles.savedEventRow}
+              onPress={() => navigation.navigate('EventDetails', { eventId: event.id })}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.savedEventTitle}>{event.title}</Text>
+                <Text style={styles.savedEventMeta}>{event.location} · {new Date(event.date).toLocaleDateString('en-IE')}</Text>
+              </View>
+              <Text style={{ color: '#065A82', fontSize: 18 }}>›</Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -451,6 +500,39 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '600',
     fontSize: 14,
+  },
+  savedCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  noSavedText: {
+    color: '#94A3B8',
+    fontSize: 14,
+    marginTop: 8,
+  },
+  savedEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  savedEventTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  savedEventMeta: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 2,
   },
   logoutButton: {
     backgroundColor: '#EF4444',
