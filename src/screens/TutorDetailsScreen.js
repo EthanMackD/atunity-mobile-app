@@ -162,6 +162,21 @@ export default function TutorDetailsScreen({ route, navigation }) {
         </View>
       </View>
 
+      {!isOwnTutorProfile && (
+      <TouchableOpacity
+        style={styles.messageButton}
+        onPress={() => navigation.navigate('Chat', {
+          userId: tutor.id,
+          userName: tutor.name,
+        })}
+      >
+        <Text style={styles.messageButtonText}>
+          Message {tutor.name.split(' ')[0]}
+        </Text>
+      </TouchableOpacity>
+    )}
+
+
       {isOwnTutorProfile && (
         <TouchableOpacity
           style={styles.editButton}
@@ -207,5 +222,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#3B82F6', padding: 14, borderRadius: 12,
     alignItems: 'center', marginTop: 12, marginBottom: 20,
   },
-  addFriendButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' },
+  addFriendButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: 'bold' 
+    
+  },
+  messageButton: {
+  backgroundColor: '#10B981',
+  padding: 16,
+  borderRadius: 12,
+  alignItems: 'center',
+  marginTop: 20,
+},
+messageButtonText: {
+  color: '#FFFFFF',
+  fontSize: 16,
+  fontWeight: 'bold',
+},
+
 });
