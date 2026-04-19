@@ -18,6 +18,9 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import EventMapScreen from './src/screens/EventMapScreen';
 import MySessionsScreen from './src/screens/MySessionsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import ConversationsScreen from './src/screens/ConversationsScreen';
+import ChatScreen from './src/screens/ChatScreen';
+
 
 const Stack = createStackNavigator();
 
@@ -101,6 +104,18 @@ export default function App() {
           component={TutorDetailsScreen}
           options={{ title: 'Tutor Details' }}
         />
+
+        <Stack.Screen
+          name="Conversations"
+          component={ConversationsScreen}
+          options={{ title: 'Messages' }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={({ route }) => ({ title: route.params?.userName || 'Chat' })}
+        />
+
         <Stack.Screen
           name="EditProfile"
           component={EditProfileScreen}
