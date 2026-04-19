@@ -52,9 +52,11 @@ export default function SignupScreen({ navigation }) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('user', JSON.stringify(data.user));
 
-        Alert.alert('Welcome!', `Account created for ${data.user.name}`, [
-          { text: 'OK', onPress: () => navigation.replace('EventsList') }
-        ]);
+        Alert.alert(
+          'Account Created!',
+          `Welcome ${data.user.name}! A verification email has been sent to ${data.user.email}. Please check your inbox and click the link to verify your account.`,
+          [{ text: 'OK', onPress: () => navigation.replace('EventsList') }]
+        );
       } else {
         Alert.alert('Error', data.error || 'Registration failed');
       }

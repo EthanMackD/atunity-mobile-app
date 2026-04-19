@@ -217,6 +217,15 @@ export default function ProfileScreen({ navigation }) {
           </Text>
         </View>
 
+        <View style={styles.divider} />
+
+        <View style={styles.infoRow}>
+          <Text style={styles.label}>Email Verified</Text>
+          <Text style={[styles.value, { color: user?.email_verified ? '#10B981' : '#EF4444' }]}>
+            {user?.email_verified ? '✓ Verified' : '✗ Not verified — check your email'}
+          </Text>
+        </View>
+
       </View>
 
       {/* Meeting Preference */}
