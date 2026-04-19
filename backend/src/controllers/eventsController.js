@@ -83,6 +83,32 @@ exports.createEvent = async (req, res) => {
   }
 };
 
+// UPDATE event
+exports.updateEvent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, date, time, location, category } = req.body;
+
+    if (!title || !description || !date || !time || !location || !category) {
+      return res.status(400).json({ success: false, error: 'All fields are required' });
+    }
+
+    const result = await pool.query(
+      'UPDATE events SET title=$1, description=$2, date=$3, time=$4, location=$5, category=$6 WHERE id=$7 RETURNING *',
+      [title, description, date, time, location, category, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Event not found' });
+    }
+
+    res.json({ success: true, event: result.rows[0] });
+  } catch (error) {
+    console.error('Update event error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update event' });
+  }
+};
+
 // DELETE event
 exports.deleteEvent = async (req, res) => {
   try {
