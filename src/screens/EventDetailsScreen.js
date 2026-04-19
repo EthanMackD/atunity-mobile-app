@@ -35,6 +35,14 @@ export default function EventDetailsScreen({ route, navigation }) {
   const [eventMessages, setEventMessages] = useState([]);
   const [chatMessage, setChatMessage] = useState('');
   const [showChat, setShowChat] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editLocation, setEditLocation] = useState('');
+  const [editCategory, setEditCategory] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchEventDetails();
@@ -285,6 +293,51 @@ export default function EventDetailsScreen({ route, navigation }) {
     }
   };
 
+  const openEdit = () => {
+    setEditTitle(event.title);
+    setEditDescription(event.description);
+    setEditDate(event.date ? event.date.split('T')[0] : '');
+    setEditTime(event.time);
+    setEditLocation(event.location);
+    setEditCategory(event.category);
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editTitle || !editDescription || !editDate || !editTime || !editLocation || !editCategory) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await fetch(`${API_URL}/events/${eventId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          date: editDate,
+          time: editTime,
+          location: editLocation,
+          category: editCategory,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setEvent(data.event);
+        setEditing(false);
+        Alert.alert('Saved', 'Event updated successfully');
+      } else {
+        Alert.alert('Error', data.error || 'Failed to update event');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update event');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-IE', {
@@ -311,8 +364,33 @@ export default function EventDetailsScreen({ route, navigation }) {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>{event.title}</Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Text style={[styles.title, { flex: 1 }]}>{event.title}</Text>
+          <TouchableOpacity onPress={openEdit} style={styles.editButton}>
+            <Text style={styles.editButtonText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.organiser}>Organised by {event.organizer}</Text>
+
+        {editing && (
+          <View style={styles.editForm}>
+            <Text style={styles.editFormTitle}>Edit Event</Text>
+            <TextInput style={styles.editInput} value={editTitle} onChangeText={setEditTitle} placeholder="Title" />
+            <TextInput style={[styles.editInput, { height: 80 }]} value={editDescription} onChangeText={setEditDescription} placeholder="Description" multiline />
+            <TextInput style={styles.editInput} value={editDate} onChangeText={setEditDate} placeholder="Date (YYYY-MM-DD)" />
+            <TextInput style={styles.editInput} value={editTime} onChangeText={setEditTime} placeholder="Time (e.g. 14:00)" />
+            <TextInput style={styles.editInput} value={editLocation} onChangeText={setEditLocation} placeholder="Location" />
+            <TextInput style={styles.editInput} value={editCategory} onChangeText={setEditCategory} placeholder="Category" />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity style={[styles.saveEditButton, savingEdit && { opacity: 0.6 }]} onPress={handleSaveEdit} disabled={savingEdit}>
+                <Text style={styles.saveEditButtonText}>{savingEdit ? 'Saving...' : 'Save Changes'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.cancelEditButton} onPress={() => setEditing(false)}>
+                <Text style={styles.cancelEditButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         <View style={styles.infoCard}>
           <Text style={styles.infoLabel}>Date</Text>
@@ -459,6 +537,15 @@ const styles = StyleSheet.create({
   content: { padding: 20 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#1E293B', marginBottom: 4 },
   organiser: { fontSize: 15, color: '#64748B', marginBottom: 20 },
+  editButton: { backgroundColor: '#065A82', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 8, marginLeft: 10, marginTop: 4 },
+  editButtonText: { color: '#FFFFFF', fontWeight: '600', fontSize: 14 },
+  editForm: { backgroundColor: '#F1F5F9', borderRadius: 12, padding: 16, marginBottom: 20 },
+  editFormTitle: { fontSize: 16, fontWeight: 'bold', color: '#065A82', marginBottom: 12 },
+  editInput: { backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10, marginBottom: 10, fontSize: 15 },
+  saveEditButton: { flex: 1, backgroundColor: '#065A82', padding: 12, borderRadius: 8, alignItems: 'center' },
+  saveEditButtonText: { color: '#FFFFFF', fontWeight: '600' },
+  cancelEditButton: { flex: 1, backgroundColor: '#E2E8F0', padding: 12, borderRadius: 8, alignItems: 'center' },
+  cancelEditButtonText: { color: '#475569', fontWeight: '600' },
   infoCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,

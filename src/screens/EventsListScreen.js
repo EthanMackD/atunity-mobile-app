@@ -75,6 +75,13 @@ export default function EventsListScreen({ navigation }) {
           </TouchableOpacity>
 
           <TouchableOpacity
+            onPress={() => navigation.navigate('Bookmarks')}
+            style={{ marginRight: 16 }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 16 }}>Saved</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={() => navigation.navigate('Profile')}
             style={{ marginRight: 16 }}
           >
