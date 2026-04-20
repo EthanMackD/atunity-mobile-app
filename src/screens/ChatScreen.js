@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView
+  StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView, Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -18,7 +18,7 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl();
 
-export default function ChatScreen({ route }) {
+export default function ChatScreen({ route, navigation }) {
   const { userId, userName } = route.params;
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -26,13 +26,36 @@ export default function ChatScreen({ route }) {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [sending, setSending] = useState(false);
   const scrollViewRef = useRef();
+  const [hasReported, setHasReported] = useState(false);
 
   useEffect(() => {
-    loadCurrentUser();
-    fetchMessages();
-    var interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  loadCurrentUser();
+  fetchMessages();
+  checkIfReported();
+  var interval = setInterval(fetchMessages, 5000);
+  return () => clearInterval(interval);
+}, []);
+
+React.useLayoutEffect(() => {
+  navigation.setOptions({
+    headerRight: () => (
+      <TouchableOpacity
+        onPress={handleReport}
+        disabled={hasReported}
+        style={{ marginRight: 16 }}
+      >
+        <Text style={{
+          color: hasReported ? '#94A3B8' : '#EF4444',
+          fontSize: 14,
+          fontWeight: 'bold',
+        }}>
+          {hasReported ? 'Reported' : 'Report'}
+        </Text>
+      </TouchableOpacity>
+    ),
+  });
+}, [navigation, hasReported]);
+
 
   const loadCurrentUser = async () => {
     var storedUser = await AsyncStorage.getItem('user');
@@ -83,6 +106,53 @@ export default function ChatScreen({ route }) {
       setSending(false);
     }
   };
+
+  const checkIfReported = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const response = await fetch(`${API_URL}/reports/check/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (data.success) setHasReported(data.hasReported);
+  } catch (error) {
+    console.error('Check report error:', error);
+  }
+};
+
+const handleReport = () => {
+  Alert.alert(
+    'Report User',
+    `Are you sure you want to report ${userName}? This will be reviewed by the platform team.`,
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Report',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await fetch(`${API_URL}/reports`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ reportedUserId: userId }),
+            });
+            const data = await response.json();
+            if (data.success) {
+              setHasReported(true);
+              Alert.alert('Reported', 'Thank you. This user has been reported.');
+            }
+          } catch (error) {
+            Alert.alert('Error', 'Could not submit report. Try again.');
+          }
+        },
+      },
+    ]
+  );
+};
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
