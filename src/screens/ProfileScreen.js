@@ -15,13 +15,13 @@ import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 
 const getApiUrl = () => {
-  if (Platform.OS === 'web') return 'http://192.168.1.143:5000/api';
+  if (Platform.OS === 'web') return 'http://localhost:3000/api';
   const debuggerHost = Constants.expoConfig?.hostUri || Constants.manifest?.debuggerHost;
   if (debuggerHost) {
     const ip = debuggerHost.split(':')[0];
-    return `http://${ip}:5000/api`;
+    return `http://${ip}:3000/api`;
   }
-  return 'http://192.168.1.143:5000/api';
+  return 'http://localhost:3000/api';
 };
 
 const API_URL = getApiUrl();
@@ -339,6 +339,59 @@ export default function ProfileScreen({ navigation }) {
         )}
       </View>
 
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('History')}
+      >
+        <Text style={styles.navButtonText}>My Event History</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('MySessions')}
+      >
+        <Text style={styles.navButtonText}>My Tutoring Sessions</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('Friends')}
+      >
+        <Text style={styles.navButtonText}>My Friends</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('Conversations')}
+      >
+        <Text style={styles.navButtonText}>Messages</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('Bookmarks')}
+      >
+        <Text style={styles.navButtonText}>Saved Events</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('EditProfile')}
+      >
+        <Text style={styles.navButtonText}>Edit Profile</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.navButton}
+        onPress={() => navigation.navigate('ChangePassword')}
+      >
+        <Text style={styles.navButtonText}>Change Password</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutText}>Logout</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
       </TouchableOpacity>
@@ -350,6 +403,7 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    ...(Platform.OS === 'web' ? { height: '100vh', overflow: 'auto' } : {}),
     backgroundColor: '#F8FAFC',
   },
   contentContainer: {
@@ -533,6 +587,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#64748B',
     marginTop: 2,
+  },
+  navButton: {
+    backgroundColor: '#065A82',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  navButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   logoutButton: {
     backgroundColor: '#EF4444',

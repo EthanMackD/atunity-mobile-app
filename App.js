@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform, View } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 
@@ -18,6 +19,8 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import EventMapScreen from './src/screens/EventMapScreen';
 import MySessionsScreen from './src/screens/MySessionsScreen';
 import FriendsScreen from './src/screens/FriendsScreen';
+import ConversationsScreen from './src/screens/ConversationsScreen';
+import ChatScreen from './src/screens/ChatScreen';
 
 const Stack = createStackNavigator();
 
@@ -34,6 +37,7 @@ export default function App() {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          cardStyle: { flex: 1, backgroundColor: '#F8FAFC' },
         }}
       >
         <Stack.Screen
@@ -127,6 +131,16 @@ export default function App() {
           name="Friends"
           component={FriendsScreen}
           options={{ title: 'My Friends' }}
+        />
+        <Stack.Screen
+          name="Conversations"
+          component={ConversationsScreen}
+          options={{ title: 'Messages' }}
+        />
+        <Stack.Screen
+          name="Chat"
+          component={ChatScreen}
+          options={({ route }) => ({ title: route.params.userName })}
         />
       </Stack.Navigator>
     </NavigationContainer>
