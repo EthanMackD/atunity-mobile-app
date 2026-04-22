@@ -98,12 +98,118 @@ exports.getTutorById = async (req, res) => {
       "SELECT id, name, email, course, year, role, subjects, availability, experience, description, price, created_at FROM users WHERE id = $1 AND role = 'tutor'",
       [id]
     );
+
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Tutor not found' });
     }
+
     res.json({ success: true, tutor: result.rows[0] });
   } catch (error) {
     console.error('Get tutor by id error:', error);
     res.status(500).json({ error: 'Failed to fetch tutor' });
+  }
+};
+
+exports.blockUser = async (req, res) => {
+  try {
+    const blockerId = req.userId;
+    const blockedId = parseInt(req.params.id);
+
+    if (!blockedId) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
+    if (blockerId === blockedId) {
+      return res.status(400).json({ error: 'You cannot block yourself' });
+    }
+
+    const userCheck = await pool.query(
+      'SELECT id, name FROM users WHERE id = $1',
+      [blockedId]
+    );
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const alreadyBlocked = await pool.query(
+      'SELECT * FROM blocked_users WHERE blocker_id = $1 AND blocked_id = $2',
+      [blockerId, blockedId]
+    );
+
+    if (alreadyBlocked.rows.length > 0) {
+      return res.status(400).json({ error: 'User is already blocked' });
+    }
+
+    await pool.query(
+      'INSERT INTO blocked_users (blocker_id, blocked_id) VALUES ($1, $2)',
+      [blockerId, blockedId]
+    );
+
+    res.json({
+      success: true,
+      message: 'User blocked successfully'
+    });
+  } catch (error) {
+    console.error('Block user error:', error);
+    res.status(500).json({ error: 'Failed to block user' });
+  }
+};
+
+exports.unblockUser = async (req, res) => {
+  try {
+    const blockerId = req.userId;
+    const blockedId = parseInt(req.params.id);
+
+    if (!blockedId) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
+    const result = await pool.query(
+      'DELETE FROM blocked_users WHERE blocker_id = $1 AND blocked_id = $2 RETURNING *',
+      [blockerId, blockedId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Blocked user record not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'User unblocked successfully'
+    });
+  } catch (error) {
+    console.error('Unblock user error:', error);
+    res.status(500).json({ error: 'Failed to unblock user' });
+  }
+};
+
+exports.getBlockStatus = async (req, res) => {
+  try {
+    const currentUserId = req.userId;
+    const otherUserId = parseInt(req.params.id);
+
+    if (!otherUserId) {
+      return res.status(400).json({ error: 'Invalid user id' });
+    }
+
+    const iBlockedThem = await pool.query(
+      'SELECT * FROM blocked_users WHERE blocker_id = $1 AND blocked_id = $2',
+      [currentUserId, otherUserId]
+    );
+
+    const theyBlockedMe = await pool.query(
+      'SELECT * FROM blocked_users WHERE blocker_id = $1 AND blocked_id = $2',
+      [otherUserId, currentUserId]
+    );
+
+    res.json({
+      success: true,
+      isBlocked: iBlockedThem.rows.length > 0,
+      blockedByThem: theyBlockedMe.rows.length > 0
+    });
+  } catch (error) {
+    console.error('Get block status error:', error);
+    res.status(500).json({ error: 'Failed to get block status' });
   }
 };

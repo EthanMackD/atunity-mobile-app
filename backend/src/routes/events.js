@@ -16,6 +16,7 @@ router.delete('/:id/reminders', authMiddleware, eventsController.disableReminder
 router.post('/:id/attend', authMiddleware, eventsController.markAttendance);
 router.post('/:id/bookmark', authMiddleware, eventsController.bookmarkEvent);
 router.delete('/:id/bookmark', authMiddleware, eventsController.removeBookmark);
+router.put('/:id', authMiddleware, eventsController.updateEvent);
 router.delete('/:id', authMiddleware, eventsController.deleteEvent);
 
 router.get('/:id', eventsController.getEventById);
