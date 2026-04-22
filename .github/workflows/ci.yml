@@ -22,6 +22,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      - name: Run frontend tests
+        run: npm test -- --coverage --passWithNoTests
+
       - name: Check frontend builds
         run: npx expo export --platform web || echo "Web export not configured"
 
@@ -39,6 +42,9 @@ jobs:
 
       - name: Install backend dependencies
         run: cd backend && npm install
+
+      - name: Run backend tests
+        run: cd backend && npm test -- --coverage --passWithNoTests
 
       - name: Check backend starts
         run: |

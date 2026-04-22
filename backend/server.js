@@ -1,25 +1,38 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { checkAndSendReminders } = require('./src/services/notificationScheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Routes
 const authRoutes = require('./src/routes/auth');
 const eventsRoutes = require('./src/routes/events');
+const bookmarksRoutes = require('./src/routes/bookmarks');
+const usersRoutes = require('./src/routes/users');
+const sessionsRoutes = require('./src/routes/sessions');
+const friendsRoutes = require('./src/routes/friends');
+const messagesRoutes = require('./src/routes/messages');
+const eventMessagesRoutes = require('./src/routes/eventMessages');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
+app.use('/api/bookmarks', bookmarksRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/events', eventMessagesRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/friends', friendsRoutes);
+app.use('/api/sessions', sessionsRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'ATUnity API is running',
     timestamp: new Date().toISOString()
   });
@@ -37,7 +50,16 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Server running on http://localhost:${PORT}`);
 });
+
+// Start notification scheduler - runs every 5 minutes
+const REMINDER_CHECK_INTERVAL = 5 * 60 * 1000;
+setInterval(() => {
+  checkAndSendReminders();
+}, REMINDER_CHECK_INTERVAL);
+
+// Run check on startup
+checkAndSendReminders();
 
 module.exports = app;
