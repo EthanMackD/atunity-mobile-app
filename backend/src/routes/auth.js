@@ -6,5 +6,10 @@ const authMiddleware = require('../middleware/auth');
 router.post('/register', authController.register);
 router.post('/login', authController.login);
 router.get('/me', authMiddleware, authController.getMe);
+router.patch('/profile', authMiddleware, authController.updateProfile);
+router.patch('/profile/details', authMiddleware, authController.updateProfileDetails);
+router.patch('/profile/picture', authMiddleware, authController.uploadProfilePicture);
+router.put('/change-password', authMiddleware, authController.changePassword);
+router.get('/verify/:token', authController.verifyEmail);
 
 module.exports = router;
