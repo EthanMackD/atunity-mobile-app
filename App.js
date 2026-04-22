@@ -144,16 +144,6 @@ export default function App() {
           component={FriendsScreen}
           options={{ title: 'My Friends' }}
         />
-        <Stack.Screen
-          name="Conversations"
-          component={ConversationsScreen}
-          options={{ title: 'Messages' }}
-        />
-        <Stack.Screen
-          name="Chat"
-          component={ChatScreen}
-          options={({ route }) => ({ title: route.params.userName })}
-        />
       </Stack.Navigator>
     </NavigationContainer>
   );
