@@ -9,6 +9,7 @@ import {
   Alert,
   ScrollView,
   Platform,
+  TextInput,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,6 +34,11 @@ export default function ProfileScreen({ navigation }) {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [savedEvents, setSavedEvents] = useState([]);
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editCourse, setEditCourse] = useState('');
+  const [editYear, setEditYear] = useState('');
+  const [savingDetails, setSavingDetails] = useState(false);
 
   useEffect(() => {
     loadUserProfile();
@@ -80,6 +86,42 @@ export default function ProfileScreen({ navigation }) {
       console.log('Failed to load profile:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditDetails = () => {
+    setEditName(user?.name || '');
+    setEditCourse(user?.course || '');
+    setEditYear(user?.year ? String(user.year) : '');
+    setEditingDetails(true);
+  };
+
+  const handleSaveDetails = async () => {
+    if (!editName) {
+      Alert.alert('Error', 'Name cannot be empty');
+      return;
+    }
+    setSavingDetails(true);
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await fetch(`${API_URL}/auth/profile/details`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ name: editName, course: editCourse, year: editYear ? parseInt(editYear) : null }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setUser(data.user);
+        await AsyncStorage.setItem('user', JSON.stringify(data.user));
+        setEditingDetails(false);
+        Alert.alert('Saved', 'Profile updated successfully');
+      } else {
+        Alert.alert('Error', data.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setSavingDetails(false);
     }
   };
 
@@ -253,6 +295,29 @@ export default function ProfileScreen({ navigation }) {
             {user?.email_verified ? '✓ Verified' : '✗ Not verified — check your email'}
           </Text>
         </View>
+
+        <TouchableOpacity style={styles.editDetailsButton} onPress={openEditDetails}>
+          <Text style={styles.editDetailsButtonText}>Edit Profile Details</Text>
+        </TouchableOpacity>
+
+        {editingDetails && (
+          <View style={{ marginTop: 16 }}>
+            <Text style={styles.label}>Name ({3 - (user?.name_change_count || 0)} changes left)</Text>
+            <TextInput style={styles.editDetailInput} value={editName} onChangeText={setEditName} placeholder="Name" />
+            <Text style={styles.label}>Course</Text>
+            <TextInput style={styles.editDetailInput} value={editCourse} onChangeText={setEditCourse} placeholder="Course" />
+            <Text style={styles.label}>Year</Text>
+            <TextInput style={styles.editDetailInput} value={editYear} onChangeText={setEditYear} placeholder="Year" keyboardType="number-pad" />
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+              <TouchableOpacity style={[styles.saveButton, savingDetails && styles.saveButtonDisabled]} onPress={handleSaveDetails} disabled={savingDetails}>
+                <Text style={styles.saveButtonText}>{savingDetails ? 'Saving...' : 'Save'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.saveButton, { backgroundColor: '#94A3B8' }]} onPress={() => setEditingDetails(false)}>
+                <Text style={styles.saveButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
       </View>
 
@@ -500,6 +565,27 @@ const styles = StyleSheet.create({
     color: '#10B981',
     fontWeight: '600',
     fontSize: 14,
+  },
+  editDetailsButton: {
+    backgroundColor: '#065A82',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  editDetailsButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  editDetailInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    fontSize: 15,
+    backgroundColor: '#FFFFFF',
   },
   savedCard: {
     backgroundColor: '#FFFFFF',

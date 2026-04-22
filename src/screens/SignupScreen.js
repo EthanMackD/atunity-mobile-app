@@ -19,6 +19,10 @@ export default function SignupScreen({ navigation }) {
   const [course, setCourse] = useState('');
   const [year, setYear] = useState('');
   const [role, setRole] = useState('');
+  const [subjects, setSubjects] = useState('');
+  const [experience, setExperience] = useState('');
+  const [description, setDescription] = useState('');
+  const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async () => {
@@ -45,7 +49,8 @@ export default function SignupScreen({ navigation }) {
         name,
         course,
         year ? parseInt(year) : null,
-        role
+        role,
+        role === 'tutor' ? { subjects, experience, description, price: price ? parseFloat(price) : null } : {}
       );
 
       if (data.success) {
@@ -149,6 +154,38 @@ export default function SignupScreen({ navigation }) {
           </Text>
         </TouchableOpacity>
       </View>
+
+      {role === 'tutor' && (
+        <>
+          <Text style={styles.roleLabel}>Tutor Details</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Subjects (e.g. Maths, Python)"
+            value={subjects}
+            onChangeText={setSubjects}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Experience (e.g. 2 years tutoring)"
+            value={experience}
+            onChangeText={setExperience}
+          />
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            placeholder="About you (short description)"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Price per session (€)"
+            value={price}
+            onChangeText={setPrice}
+            keyboardType="decimal-pad"
+          />
+        </>
+      )}
 
       <TouchableOpacity style={styles.button} onPress={handleSignup} disabled={loading}>
         {loading ? (

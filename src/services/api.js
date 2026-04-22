@@ -18,11 +18,11 @@ const getApiUrl = () => {
 const API_URL = getApiUrl();
 
 export const api = {
-  async register(email, password, name, course, year, role) {
+  async register(email, password, name, course, year, role, tutorDetails = {}) {
     const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name, course, year, role }),
+      body: JSON.stringify({ email, password, name, course, year, role, ...tutorDetails }),
     });
     return response.json();
   },

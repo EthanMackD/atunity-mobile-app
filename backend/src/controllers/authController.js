@@ -5,7 +5,9 @@ const nodemailer = require('nodemailer');
 const pool = require('../config/database');
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -31,7 +33,7 @@ const sendVerificationEmail = async (email, token) => {
 
 exports.register = async (req, res) => {
   try {
-    const { email, password, name, course, year, role } = req.body;
+    const { email, password, name, course, year, role, subjects, experience, description, price } = req.body;
 
     if (!email || !password || !name || !role) {
       return res.status(400).json({ error: 'Email, password, name and role are required' });
@@ -51,8 +53,8 @@ exports.register = async (req, res) => {
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
     const result = await pool.query(
-      'INSERT INTO users (email, password_hash, name, course, year, role, verification_token) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, email, name, course, year, role, created_at',
-      [email, passwordHash, name, course || null, year || null, role, verificationToken]
+      'INSERT INTO users (email, password_hash, name, course, year, role, verification_token, subjects, experience, description, price) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, email, name, course, year, role, created_at',
+      [email, passwordHash, name, course || null, year || null, role, verificationToken, subjects || null, experience || null, description || null, price || null]
     );
 
     const user = result.rows[0];
@@ -151,6 +153,42 @@ exports.changePassword = async (req, res) => {
   } catch (error) {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
+exports.updateProfileDetails = async (req, res) => {
+  try {
+    const { name, course, year } = req.body;
+
+    const userResult = await pool.query(
+      'SELECT name, name_change_count FROM users WHERE id = $1',
+      [req.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+    let nameChangeCount = user.name_change_count || 0;
+    const nameChanged = name && name !== user.name;
+
+    if (nameChanged) {
+      if (nameChangeCount >= 3) {
+        return res.status(400).json({ error: 'You can only change your name 3 times' });
+      }
+      nameChangeCount += 1;
+    }
+
+    const result = await pool.query(
+      'UPDATE users SET name = $1, course = $2, year = $3, name_change_count = $4 WHERE id = $5 RETURNING id, email, name, course, year, role, created_at, preferred_meeting_location, profile_picture, email_verified, name_change_count',
+      [name || user.name, course || null, year || null, nameChangeCount, req.userId]
+    );
+
+    res.json({ success: true, user: result.rows[0] });
+  } catch (error) {
+    console.error('Update profile details error:', error);
+    res.status(500).json({ error: 'Failed to update profile details' });
   }
 };
 
