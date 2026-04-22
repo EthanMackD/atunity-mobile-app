@@ -120,3 +120,24 @@ CREATE TABLE event_messages (
 );
 
 CREATE INDEX idx_event_messages_event ON event_messages(event_id);
+
+CREATE TABLE reports (
+  id SERIAL PRIMARY KEY,
+  reporter_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  reported_user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  reason TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(reporter_id, reported_user_id)
+);
+
+CREATE INDEX idx_reports_reported ON reports(reported_user_id);
+
+CREATE TABLE conversation_archives (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  other_user_id INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, other_user_id)
+);
+
+CREATE INDEX idx_archives_user ON conversation_archives(user_id);

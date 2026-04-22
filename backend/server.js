@@ -19,7 +19,11 @@ const sessionsRoutes = require('./src/routes/sessions');
 const friendsRoutes = require('./src/routes/friends');
 const messagesRoutes = require('./src/routes/messages');
 const eventMessagesRoutes = require('./src/routes/eventMessages');
+const reportsRouter = require('./src/routes/reports');
+const archiveRouter = require('./src/routes/archive');
 
+app.use('/api/conversations', archiveRouter);
+app.use('/api/reports', reportsRouter);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/bookmarks', bookmarksRoutes);

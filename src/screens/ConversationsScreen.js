@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Platform
+  StyleSheet, ActivityIndicator, Platform, Alert
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -21,6 +21,8 @@ const API_URL = getApiUrl();
 export default function ConversationsScreen({ navigation }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [archivedIds, setArchivedIds] = useState([]);
+  const [showArchived, setShowArchived] = useState(false);
 
   useEffect(() => {
     fetchConversations();
@@ -50,6 +52,52 @@ export default function ConversationsScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchArchivedIds = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      const response = await fetch(`${API_URL}/conversations/archived-ids`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+      if (data.success) setArchivedIds(data.archivedIds);
+    } catch (error) {
+      console.error('Failed to fetch archived IDs:', error);
+    }
+  };
+
+  const handleLongPress = (conv) => {
+    const isArchived = archivedIds.includes(conv.other_user_id);
+    Alert.alert(
+      isArchived ? 'Unarchive Conversation' : 'Archive Conversation',
+      isArchived
+        ? `Move your conversation with ${conv.other_user_name} back to your inbox?`
+        : `Archive your conversation with ${conv.other_user_name}? You can unarchive it later.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: isArchived ? 'Unarchive' : 'Archive',
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              const endpoint = isArchived ? 'unarchive' : 'archive';
+              await fetch(`${API_URL}/conversations/${endpoint}`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ otherUserId: conv.other_user_id }),
+              });
+              fetchArchivedIds();
+            } catch (error) {
+              Alert.alert('Error', 'Could not update archive. Try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatTime = (dateString) => {
@@ -104,9 +152,37 @@ export default function ConversationsScreen({ navigation }) {
     );
   }
 
+  const filtered = conversations.filter(function(c) {
+    return showArchived
+      ? archivedIds.includes(c.other_user_id)
+      : !archivedIds.includes(c.other_user_id);
+  });
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {conversations.length === 0 ? (
+
+      {/* Toggle Bar */}
+      <View style={styles.toggleRow}>
+        <TouchableOpacity
+          style={[styles.toggleButton, !showArchived && styles.toggleButtonActive]}
+          onPress={() => setShowArchived(false)}
+        >
+          <Text style={[styles.toggleText, !showArchived && styles.toggleTextActive]}>
+            Inbox
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.toggleButton, showArchived && styles.toggleButtonActive]}
+          onPress={() => setShowArchived(true)}
+        >
+          <Text style={[styles.toggleText, showArchived && styles.toggleTextActive]}>
+            Archived
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Conversation List */}
+      {filtered.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>No conversations yet.</Text>
           <Text style={styles.emptySubtext}>
@@ -114,7 +190,7 @@ export default function ConversationsScreen({ navigation }) {
           </Text>
         </View>
       ) : (
-        conversations.map((conv) => (
+        filtered.map((conv) => (
           <TouchableOpacity
             key={conv.other_user_id.toString()}
             style={styles.card}
@@ -156,6 +232,7 @@ export default function ConversationsScreen({ navigation }) {
           </TouchableOpacity>
         ))
       )}
+
     </ScrollView>
   );
 }
@@ -265,5 +342,29 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#3B82F6',
     marginLeft: 8,
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    backgroundColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 4,
+  },
+  toggleButton: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  toggleButtonActive: {
+    backgroundColor: '#FFFFFF',
+  },
+  toggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  toggleTextActive: {
+    color: '#065A82',
   },
 });

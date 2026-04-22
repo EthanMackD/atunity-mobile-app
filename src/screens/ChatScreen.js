@@ -31,6 +31,7 @@ export default function ChatScreen({ route, navigation }) {
   const [updatingBlock, setUpdatingBlock] = useState(false);
 
   const scrollViewRef = useRef();
+  const [hasReported, setHasReported] = useState(false);
 
   useEffect(() => {
     loadCurrentUser();
@@ -215,6 +216,53 @@ export default function ChatScreen({ route, navigation }) {
       setSending(false);
     }
   };
+
+  const checkIfReported = async () => {
+  try {
+    const token = await AsyncStorage.getItem('token');
+    const response = await fetch(`${API_URL}/reports/check/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await response.json();
+    if (data.success) setHasReported(data.hasReported);
+  } catch (error) {
+    console.error('Check report error:', error);
+  }
+};
+
+const handleReport = () => {
+  Alert.alert(
+    'Report User',
+    `Are you sure you want to report ${userName}? This will be reviewed by the platform team.`,
+    [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Report',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const token = await AsyncStorage.getItem('token');
+            const response = await fetch(`${API_URL}/reports`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ reportedUserId: userId }),
+            });
+            const data = await response.json();
+            if (data.success) {
+              setHasReported(true);
+              Alert.alert('Reported', 'Thank you. This user has been reported.');
+            }
+          } catch (error) {
+            Alert.alert('Error', 'Could not submit report. Try again.');
+          }
+        },
+      },
+    ]
+  );
+};
 
   const formatTime = (dateString) => {
     const date = new Date(dateString);
